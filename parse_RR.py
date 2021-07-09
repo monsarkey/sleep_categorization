@@ -1,5 +1,26 @@
 import pandas as pd
 import numpy as np
+from scipy.signal import find_peaks
+from matplotlib import pyplot as plt
+
+
+class RespiratoryEpoch:
+
+    def __init__(self, data: np.ndarray, size: int = 30):
+        self.data = data
+        self.size = len(data)
+        self._get_resp_rate()
+
+    def _get_resp_rate(self):
+        self._peaks, _ = find_peaks(self.data, height=0)
+        self._num_peaks = len(self._peaks)
+
+    def draw(self):
+        xs = np.arange(self.size)
+
+        plt.plot(xs, self.data)
+        plt.scatter(self._peaks, self.data[self._peaks], c='r')
+        plt.show()
 
 
 class DaySleep:
@@ -20,8 +41,7 @@ class DaySleep:
         self.age = age
         self.gender = gender
         self.data = data
-        self.breath_epochs = None
-        self.rr_epochs = None
+        self.epochs = []
         self.labels = labels
         self.parse_labels(labels)
         self.split_epochs()
@@ -47,9 +67,18 @@ class DaySleep:
 
         # TODO: ensure that this resize is unnecessary (data is for some reason of different length than labels)
         self.data = np.resize(self.data, (86400,))
-        self.breath_epochs = np.split(self.data, indices_or_sections=(self.data.size//interval))
+        # split = np.split(self.data, indices_or_sections=(self.data.size//interval))
 
-#
-# def get_rr(epoch: np.ndarray) -> float:
-#     pass
+        # 30s window around every second in data is an epoch
+        for index, point in enumerate(self.data):
+            span = interval//2
+            size = len(self.data) - 1
+            if index - span > 0 and index + span < size:
+                cur_epoch = RespiratoryEpoch(data=self.data[(index - (interval // 2)):(index + (interval // 2))])
+            elif index - span > 0:
+                cur_epoch = RespiratoryEpoch(data=self.data[(index - (interval // 2)):size])
+            elif index + span < size:
+                cur_epoch = RespiratoryEpoch(data=self.data[0:(index + (interval // 2))])
 
+            cur_epoch.draw()
+            self.epochs.append(cur_epoch)
