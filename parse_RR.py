@@ -15,7 +15,7 @@ class RespiratoryEpoch:
         self._peaks, _ = find_peaks(self.data, height=0)
         self._num_peaks = len(self._peaks)
 
-        # I(n) = x(n + 1) - x(n) with n = 1, 2, 3, ..., N-1, where x(n) is the position of peak n in seconds
+        # I(n) = x(n + 1) - x(n) with n = 1, 2, 3, ..., N-1 where x(n) is the position of peak n in seconds
         self._breath_itvls = np.array([self._peaks[x+1] - self._peaks[x] for x in range(self._num_peaks-1)])
 
         # respiratory rate = (60/N) * ( sum of 1 / I(n) from 1 to N)
@@ -70,6 +70,21 @@ class DaySleep:
         self.labels = labels
         self.parse_labels(labels)
         self.split_epochs()
+        self.resp_rates = self._get_resp_rates()
+
+    def _get_resp_rates(self):
+        return np.array([x.resp_rate for x in self.epochs])
+
+    def draw_resp(self):
+        if len(self.epochs) == 0:
+            return
+
+        if len(self.resp_rates) == 0:
+            self.resp_rates = self._get_resp_rates()
+
+        xs = np.arange(len(self.resp_rates))
+        plt.scatter(xs, self.resp_rates, s=1)
+        plt.show()
 
     # separate timestamped sleep stages into 30s intervals
     def parse_labels(self, labels: [float, bytes, str], interval: int = 30):

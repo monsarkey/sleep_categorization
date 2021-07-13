@@ -25,11 +25,12 @@ def load_data(dirname: str = "data/sleep-cassette/") -> [DaySleep]:
 
         if index % 2 != 0:
             day_sleep.split_epochs()
+            day_sleep.draw_resp()
             data_list.append(day_sleep)
 
-        if index == 11:
-            print(f"stopping on day {index}")
-            break
+        # if index == 11:
+        #     print(f"stopping on day {index}")
+        #     break
 
     return data_list
 
