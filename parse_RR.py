@@ -15,12 +15,37 @@ class RespiratoryEpoch:
         self._peaks, _ = find_peaks(self.data, height=0)
         self._num_peaks = len(self._peaks)
 
+        # I(n) = x(n + 1) - x(n) with n = 1, 2, 3, ..., N-1, where x(n) is the position of peak n in seconds
+        self._breath_itvls = np.array([self._peaks[x+1] - self._peaks[x] for x in range(self._num_peaks-1)])
+
+        # respiratory rate = (60/N) * ( sum of 1 / I(n) from 1 to N)
+        def resp_rate(N : int = 0) -> float:
+
+            if N == 0:
+                return 0.0
+            sum = 0
+            for i in range(N):
+                sum += (1 / self._breath_itvls[i])
+            return (60 / N) * sum
+
+        self.resp_rate = resp_rate(self._num_peaks - 1)
+
     def draw(self):
         xs = np.arange(self.size)
 
         plt.plot(xs, self.data)
         plt.scatter(self._peaks, self.data[self._peaks], c='r')
+        # plt.scatter(self._peaks[:-1], self._breath_itvls[np.arange(self._num_peaks-1)]*100)
         plt.show()
+
+    def save_plot(self, filename: str = "figures/cur_epoch"):
+        xs = np.arange(self.size)
+
+        plt.plot(xs, self.data)
+        plt.scatter(self._peaks, self.data[self._peaks], c='r')
+        # plt.scatter(self._peaks, self._breath_itvls[self._peaks])
+        plt.savefig(filename)
+        plt.close()
 
 
 class DaySleep:
@@ -80,5 +105,7 @@ class DaySleep:
             elif index + span < size:
                 cur_epoch = RespiratoryEpoch(data=self.data[0:(index + (interval // 2))])
 
-            cur_epoch.draw()
+            # cur_epoch.draw()
+            # cur_epoch.save_plot(f"figures/epoch{index}")
+            # cur_epoch.draw()
             self.epochs.append(cur_epoch)
