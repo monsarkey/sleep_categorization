@@ -3,7 +3,8 @@ import numpy as np
 # from scipy.signal import find_peaks
 from matplotlib import pyplot as plt
 from scipy.signal import argrelextrema
-import time
+# import time
+from training_interval import TrainingInterval
 
 
 def standardize(arr: np.ndarray):
@@ -18,9 +19,6 @@ def normalize(arr: np.ndarray):
         return (arr - np.min(arr)) / np.ptp(arr)
     else:
         return arr
-
-def variance(arr: np.ndarray):
-
 
 
 class RespiratoryEpoch:
@@ -154,6 +152,7 @@ class DaySleep:
 
         plt.close()
 
+    # TODO: Properly clean data
     def clean_data(self):
         if len(self.resp_rates) == 0 or len(self.resp_strns) == 0:
             self.resp_rates, self.resp_strns = self._get_resp()
@@ -178,6 +177,10 @@ class DaySleep:
                 label_arr.append(DaySleep.stage_labels[label[2]])
 
         self.labels = label_arr
+
+    # TODO: split data into intervals for training and analysis
+    def intervals(self):
+        return TrainingInterval()
 
     def split_epochs(self, interval: int = 30):
 
