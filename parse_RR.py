@@ -19,6 +19,9 @@ def normalize(arr: np.ndarray):
     else:
         return arr
 
+def variance(arr: np.ndarray):
+
+
 
 class RespiratoryEpoch:
 
@@ -109,12 +112,15 @@ class DaySleep:
 
     # def _clean_resp_rates(self):
 
-    def draw_resp(self, filename: str, count: int = 0, normalized: bool = True, standardized: bool = False):
+    def draw_resp(self, filename: str, count: int = 0, normalized: bool = True,
+                  standardized: bool = False, debug: bool = False):
         if len(self.epochs) == 0:
             return
 
         if len(self.resp_rates) == 0 or len(self.resp_strns) == 0:
             self.resp_rates, self.resp_strns = self._get_resp()
+
+        debug_str = "/debug" if debug else ""
 
         xs = np.arange(len(self.resp_rates))
         if normalized or standardized:
@@ -125,7 +131,7 @@ class DaySleep:
                 plt.scatter(xs, norm_rates, s=1)
                 plt.scatter(xs, norm_strns, s=1, c='g')
                 plt.title(f"Normalized Breathing Rate / Str vs. 30s Epoch")
-                plt.savefig(f"figures/days/day{count + 1}_normalized.png")
+                plt.savefig(f"figures{debug_str}/days/day{count + 1}_normalized.png")
                 plt.close()
             if standardized:
                 std_rates = standardize(self.resp_rates)
@@ -133,16 +139,31 @@ class DaySleep:
 
                 plt.scatter(xs, std_rates, s=1)
                 plt.scatter(xs, std_strns, s=1, c='g')
+                plt.scatter(self.rates_outliers, self.std_rates[self.rates_outliers], c='r')
+                plt.scatter(self.strns_outliers, self.std_strns[self.strns_outliers], c='r')
                 plt.title(f"Standardized Breathing Rate / Str vs. 30s Epoch")
-                plt.savefig(f"figures/days/day{count + 1}_standardized.png")
+                plt.savefig(f"figures{debug_str}/days/day{count + 1}_standardized.png")
                 plt.close()
         else:
             plt.scatter(xs, self.resp_rates, s=1)
             plt.scatter(xs, self.resp_strns, s=1, c='g')
+            plt.scatter(self.rates_outliers, self.resp_rates[self.rates_outliers], c='r')
+            plt.scatter(self.strns_outliers, self.resp_strns[self.strns_outliers], c='r')
             plt.title(f"Breathing Rate (breaths / min) and Str vs. 30s Epoch")
-            plt.savefig(f"figures/days/day{count + 1}.png")
+            plt.savefig(f"figures{debug_str}/days/day{count + 1}.png")
 
         plt.close()
+
+    def clean_data(self):
+        if len(self.resp_rates) == 0 or len(self.resp_strns) == 0:
+            self.resp_rates, self.resp_strns = self._get_resp()
+
+        self.std_rates = standardize(self.resp_rates)
+        self.std_strns = standardize(self.resp_strns)
+
+        self.rates_outliers,  = np.where(np.abs(self.std_rates) > 3)
+        self.strns_outliers, = np.where(self.std_strns > 4)
+
 
     # separate timestamped sleep stages into 30s intervals
     def parse_labels(self, labels: [float, bytes, str], interval: int = 30):
