@@ -1,7 +1,23 @@
 import pandas as pd
 import numpy as np
-from scipy.signal import find_peaks
+# from scipy.signal import find_peaks
 from matplotlib import pyplot as plt
+from scipy.signal import argrelextrema
+import time
+
+
+def standardize(arr: np.ndarray):
+    if len(arr) > 0:
+        return (arr - np.mean(arr)) / np.std(arr)
+    else:
+        return arr
+
+
+def normalize(arr: np.ndarray):
+    if len(arr) > 0:
+        return (arr - np.min(arr)) / np.ptp(arr)
+    else:
+        return arr
 
 
 class RespiratoryEpoch:
@@ -11,15 +27,29 @@ class RespiratoryEpoch:
         self.size = len(data)
         self._get_resp_rate()
 
-    def _get_resp_rate(self):
-        self._peaks, _ = find_peaks(self.data, height=0)
+    def _get_resp_rate(self, calc_str: bool = True):
+        # self._peaks, _ = find_peaks(self.data, height=0)
+        BR_STR_FACTOR = 1 / 50
+
+        self._peaks = argrelextrema(self.data, np.greater)[0]
+        self._valleys = argrelextrema(self.data, np.less)[0]
         self._num_peaks = len(self._peaks)
+        self._num_valleys = len(self._valleys)
 
         # I(n) = x(n + 1) - x(n) with n = 1, 2, 3, ..., N-1 where x(n) is the position of peak n in seconds
-        self._breath_itvls = np.array([self._peaks[x+1] - self._peaks[x] for x in range(self._num_peaks-1)])
+        self._breath_itvls = np.array([self._peaks[x + 1] - self._peaks[x] for x in range(self._num_peaks - 1)])
+
+        self._breath_delta = np.array(
+            [self.data[self._peaks[x]] - self.data[self._valleys[x]] if x < (self._num_valleys - 1)
+             else 0 for x in range(self._num_peaks - 1)])
+
+        if len(self._breath_delta) > 1:
+            self.resp_strn = (BR_STR_FACTOR / len(self._breath_delta)) * np.sum(self._breath_delta)
+        else:
+            self.resp_strn = 0
 
         # respiratory rate = (60/N) * ( sum of 1 / I(n) from 1 to N)
-        def resp_rate(N : int = 0) -> float:
+        def resp_rate(N: int = 0) -> float:
 
             if N == 0:
                 return 0.0
@@ -49,7 +79,6 @@ class RespiratoryEpoch:
 
 
 class DaySleep:
-
     # stages nrem1 and nrem2 both "light" sleep, nrem3 and nrem4 "deep" sleep, awake, moving, and unk. all "awake"
     stage_labels = {
         'Sleep stage W': 'awake',
@@ -62,7 +91,8 @@ class DaySleep:
         'Sleep stage R': 'rem',
     }
 
-    def __init__(self, age: int = None, gender: int = None, data: np.ndarray = None, labels: [float, bytes, str] = None):
+    def __init__(self, age: int = None, gender: int = None, data: np.ndarray = None,
+                 labels: [float, bytes, str] = None):
         self.age = age
         self.gender = gender
         self.data = data
@@ -70,21 +100,49 @@ class DaySleep:
         self.labels = labels
         self.parse_labels(labels)
         self.split_epochs()
-        self.resp_rates = self._get_resp_rates()
+        self.resp_rates, self.resp_strns = self._get_resp()
+        # self.resp_strns = self._get_rest_strns()
 
-    def _get_resp_rates(self):
-        return np.array([x.resp_rate for x in self.epochs])
+    def _get_resp(self):
+        return np.array([x.resp_rate for x in self.epochs]), \
+               np.array([x.resp_strn for x in self.epochs])
 
-    def draw_resp(self):
+    # def _clean_resp_rates(self):
+
+    def draw_resp(self, filename: str, count: int = 0, normalized: bool = True, standardized: bool = False):
         if len(self.epochs) == 0:
             return
 
-        if len(self.resp_rates) == 0:
-            self.resp_rates = self._get_resp_rates()
+        if len(self.resp_rates) == 0 or len(self.resp_strns) == 0:
+            self.resp_rates, self.resp_strns = self._get_resp()
 
         xs = np.arange(len(self.resp_rates))
-        plt.scatter(xs, self.resp_rates, s=1)
-        plt.show()
+        if normalized or standardized:
+            if normalized:
+                norm_rates = normalize(self.resp_rates)
+                norm_strns = normalize(self.resp_strns)
+
+                plt.scatter(xs, norm_rates, s=1)
+                plt.scatter(xs, norm_strns, s=1, c='g')
+                plt.title(f"Normalized Breathing Rate / Str vs. 30s Epoch")
+                plt.savefig(f"figures/days/day{count + 1}_normalized.png")
+                plt.close()
+            if standardized:
+                std_rates = standardize(self.resp_rates)
+                std_strns = standardize(self.resp_strns)
+
+                plt.scatter(xs, std_rates, s=1)
+                plt.scatter(xs, std_strns, s=1, c='g')
+                plt.title(f"Standardized Breathing Rate / Str vs. 30s Epoch")
+                plt.savefig(f"figures/days/day{count + 1}_standardized.png")
+                plt.close()
+        else:
+            plt.scatter(xs, self.resp_rates, s=1)
+            plt.scatter(xs, self.resp_strns, s=1, c='g')
+            plt.title(f"Breathing Rate (breaths / min) and Str vs. 30s Epoch")
+            plt.savefig(f"figures/days/day{count + 1}.png")
+
+        plt.close()
 
     # separate timestamped sleep stages into 30s intervals
     def parse_labels(self, labels: [float, bytes, str], interval: int = 30):
@@ -111,7 +169,7 @@ class DaySleep:
 
         # 30s window around every second in data is an epoch
         for index, point in enumerate(self.data):
-            span = interval//2
+            span = interval // 2
             size = len(self.data) - 1
             if index - span > 0 and index + span < size:
                 cur_epoch = RespiratoryEpoch(data=self.data[(index - (interval // 2)):(index + (interval // 2))])
