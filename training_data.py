@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
 
@@ -45,19 +46,20 @@ class TrainingInterval:
     def export_stats(self) -> dict:
 
         return {
-            "Respiratory Rate Mean": self.mean_RR,
-            "Respiratory Strength Mean": self.mean_RS,
-            "Respiratory Rate Standard Deviation": self.std_RR,
-            "Respiratory Strength Standard Deviation": self.std_RS,
-            "Respiratory Rate Variance": self.var_RR,
-            "Respiratory Strength Variance": self.var_RS,
-            "Respiratory Rate Range": self.range_RR,
-            "Respiratory Strength Range": self.range_RS,
-            "Respiratory Rate Mean Delta": self.delta_RR,
-            "Respiratory Strength Mean Delta": self.delta_RS,
-            "Gender": self.gender,
-            "Age": self.age,
-            "Label": self.label,
+            "rr_mean": self.mean_RR,
+            "rs_mean": self.mean_RS,
+            "rr_std": self.std_RR,
+            "rs_std": self.std_RS,
+            "rr_var": self.var_RR,
+            "rs_var": self.var_RS,
+            "rr_range": self.range_RR,
+            "rs_range": self.range_RS,
+            "rr_delta": self.delta_RR,
+            "rs_delta": self.delta_RS,
+            "rr_trend": self.trend_RR,
+            "gender": self.gender,
+            "age": self.age,
+            "label": self.label,
         }
 
 
@@ -66,6 +68,7 @@ class TrainingData:
 
     def __init__(self):
         self.intervals = []
+        self.trimmed = False
 
     def _set_trend_values(self, trend_len: int = 5):
         rr_delta = [interval.delta_RR for interval in self.intervals]
@@ -93,6 +96,7 @@ class TrainingData:
         start = np.min([deep[0], light[0], rem[0]])
         end = np.min([deep[-1], light[-1], rem[-1]])
         self.intervals = self.intervals[start:end]
+        self.trimmed = True
 
     def draw(self):
         xs = np.arange(len(self.intervals))
@@ -137,5 +141,9 @@ class TrainingData:
 
         plt.show()
 
-    
+    def to_df(self) -> pd.DataFrame:
+        self._set_trend_values(trend_len=10)
+        dicts = [interval.export_stats() for interval in self.intervals]
+
+        return pd.DataFrame(dicts)
 
