@@ -163,7 +163,6 @@ class DaySleep:
         self.rates_outliers,  = np.where(np.abs(self.std_rates) > 3)
         self.strns_outliers, = np.where(self.std_strns > 4)
 
-
     # separate timestamped sleep stages into 30s intervals
     def parse_labels(self, labels: [float, bytes, str], interval: int = 30):
 
@@ -179,8 +178,26 @@ class DaySleep:
         self.labels = label_arr
 
     # TODO: split data into intervals for training and analysis
-    def intervals(self):
-        return TrainingInterval()
+    def get_intervals(self, interval: int = 30) -> [TrainingInterval]:
+        intervals = []
+
+        if self.data is None:
+            return intervals
+
+        sub_rates = np.array_split(self.resp_rates, len(self.resp_rates)//interval)
+        sub_strns = np.array_split(self.resp_strns, len(self.resp_strns)//interval)
+
+        prev_itvl = None
+
+        for index in range(len(sub_rates)):
+            # if we wanted, here we could pass in normalized or standardized resp_rates and resp_strns
+            new_itvl = TrainingInterval(resp_rates=sub_rates[index], resp_strns=sub_strns[index],
+                                        age=self.age, gender=self.gender, label=self.labels[index], prev=prev_itvl)
+            intervals.append(new_itvl)
+            # pass in reference to previous training interval for analysis
+            prev_itvl = new_itvl
+
+        return intervals
 
     def split_epochs(self, interval: int = 30):
 

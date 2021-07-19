@@ -26,7 +26,8 @@ def load_data(dirname: str = "data/sleep-cassette/") -> [DaySleep]:
         if index % 2 != 0:
             day_sleep.split_epochs()
             day_sleep.clean_data()
-            day_sleep.draw_resp(filename=filename, count=index//2, standardized=True, normalized=False, debug=True)
+            # day_sleep.draw_resp(filename=filename, count=index//2, standardized=True, normalized=False, debug=True)
+            intervals = day_sleep.get_intervals()
             data_list.append(day_sleep)
 
         # if index == 11:
