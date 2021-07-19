@@ -30,7 +30,28 @@ class TrainingInterval:
         self.range_RS = np.max(self._resp_strns) - np.min(self._resp_strns)
 
         # the difference between the mean respiratory data in this interval and the previous
-        self.delta_RR = self.mean_RR - self.prev.mean_RR
-        self.delta_RS = self.mean_RS - self.prev.mean_RS
+        if self.prev is not None:
+            self.delta_RR = self.mean_RR - self.prev.mean_RR
+            self.delta_RS = self.mean_RS - self.prev.mean_RS
+        else:
+            self.delta_RR = 0
+            self.delta_RS = 0
 
+    def export_stats(self) -> dict:
+
+        return {
+            "Respiratory Rate Mean": self.mean_RR,
+            "Respiratory Strength Mean": self.mean_RS,
+            "Respiratory Rate Standard Deviation": self.std_RR,
+            "Respiratory Strength Standard Deviation": self.std_RS,
+            "Respiratory Rate Variance": self.var_RR,
+            "Respiratory Strength Variance": self.var_RS,
+            "Respiratory Rate Range": self.range_RR,
+            "Respiratory Strength Range": self.range_RS,
+            "Respiratory Rate Mean Delta": self.delta_RR,
+            "Respiratory Strength Mean Delta": self.delta_RS,
+            "Gender": self.gender,
+            "Age": self.age,
+            "Label": self.label,
+        }
 
