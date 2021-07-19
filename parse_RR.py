@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.signal import argrelextrema
 # import time
-from training_interval import TrainingInterval
+from training_data import TrainingInterval, TrainingData
 
 
 def standardize(arr: np.ndarray):
@@ -179,7 +179,7 @@ class DaySleep:
 
     # TODO: split data into intervals for training and analysis
     def get_intervals(self, interval: int = 30) -> [TrainingInterval]:
-        intervals = []
+        intervals = TrainingData()
 
         if self.data is None:
             return intervals
@@ -193,7 +193,7 @@ class DaySleep:
             # if we wanted, here we could pass in normalized or standardized resp_rates and resp_strns
             new_itvl = TrainingInterval(resp_rates=sub_rates[index], resp_strns=sub_strns[index],
                                         age=self.age, gender=self.gender, label=self.labels[index], prev=prev_itvl)
-            intervals.append(new_itvl)
+            intervals.add(new_itvl)
             # pass in reference to previous training interval for analysis
             prev_itvl = new_itvl
 
