@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from scipy.stats import median_absolute_deviation
 
 
 # TODO: Write this class :)
@@ -17,6 +18,8 @@ class TrainingInterval:
 
         self.mean_RR = np.mean(self._resp_rates)
         self.mean_RS = np.mean(self._resp_strns)
+
+        self.median_RR = np.median(self._resp_rates)
         self.trend_RR = None
 
         self._calc_stats()
@@ -30,6 +33,19 @@ class TrainingInterval:
         # standard deviation is the square root of variance
         self.std_RR = np.sqrt(self.var_RR)
         self.std_RS = np.sqrt(self.var_RS)
+
+        # self.var_coeff_RR =  10 * (1 + (1 / (4 * len(self._resp_rates) + 1))) * (self.std_RR / self.mean_RR)
+        self.mad_RR = median_absolute_deviation(self._resp_rates)
+
+        if self.mean_RR != 0:
+            self.disp_RR = self.var_RR / self.mean_RR
+        else:
+            self.disp_RR = 0
+
+        if self.mean_RS != 0:
+            self.disp_RS = self.var_RS / self.mean_RS
+        else:
+            self.disp_RS = 0
 
         # the range of values in our respiratory rates and strengths
         self.range_RR = np.max(self._resp_rates) - np.min(self._resp_rates)
@@ -47,7 +63,7 @@ class TrainingInterval:
         self.delta_abs_RS = np.abs(self.delta_RS)
 
     def export_stats(self) -> dict:
-
+        # TODO: add new variables to export
         return {
             "rr_mean": self.mean_RR,
             "rs_mean": self.mean_RS,
@@ -142,9 +158,17 @@ class TrainingData:
 
         labels = [interval.label for interval in self.intervals]
 
+        # testing area
+        rr_median = [interval.median_RR for interval in self.intervals]
+        rr_mad = [interval.mad_RR for interval in self.intervals]
+        # rr_var_coeff = [interval.var_coeff_RR for interval in self.intervals]
+        rr_disp = [interval.disp_RR for interval in self.intervals]
+        rs_disp = [interval.disp_RS for interval in self.intervals]
+
+
         # plt.plot(xs, rr_means)
-        plt.plot(xs, rr_delta_abs, c='g')
-        # plt.plot(xs, rs_range, c='c')
+        plt.plot(xs, rr_disp, c='g', alpha=.7)
+        # plt.plot(xs, rs_disp, c='c', alpha=.7)
 
         for i in range(len(xs)):
             if labels[i] == 'awake':
