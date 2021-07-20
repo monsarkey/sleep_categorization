@@ -1,9 +1,16 @@
+from util import edf_to_csv
 import pandas as pd
-import numpy as np
-import os
-import pyedflib # library to parse European Data Format (EDF)
-from parse_RR import DaySleep
-from util import parse_edf
+
+trimmed = True
+trimmed_str = "_trimmed" if trimmed else ""
 
 if __name__ == '__main__':
-    parse_edf()
+
+    try:
+        df = pd.read_csv(f"data/edf_data{trimmed_str}.csv")
+    except FileNotFoundError:
+        print("file not found, reloading data from .edf")
+        edf_to_csv(trimmed=trimmed)
+        df = pd.read_csv(f"data/edf_data{trimmed_str}.csv")
+
+    print(df)

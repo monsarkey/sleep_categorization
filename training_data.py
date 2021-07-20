@@ -43,6 +43,9 @@ class TrainingInterval:
             self.delta_RR = 0
             self.delta_RS = 0
 
+        self.delta_abs_RR = np.abs(self.delta_RR)
+        self.delta_abs_RS = np.abs(self.delta_RS)
+
     def export_stats(self) -> dict:
 
         return {
@@ -56,6 +59,8 @@ class TrainingInterval:
             "rs_range": self.range_RS,
             "rr_delta": self.delta_RR,
             "rs_delta": self.delta_RS,
+            "rr_delta_abs": self.delta_abs_RR,
+            "rs_delta_abs": self.delta_abs_RS,
             "rr_trend": self.trend_RR,
             "gender": self.gender,
             "age": self.age,
@@ -93,9 +98,21 @@ class TrainingData:
         rem = np.where(labels == 'rem')[0]
 
         # choose the intervals between our first and last asleep labels
-        start = np.min([deep[0], light[0], rem[0]])
-        end = np.min([deep[-1], light[-1], rem[-1]])
-        self.intervals = self.intervals[start:end]
+        try:
+            start = np.min([deep[0], light[0], rem[0]])
+            end = np.max([deep[-1], light[-1], rem[-1]])
+        except IndexError:
+            start = np.min([deep[0] if len(deep) > 0 else float('inf'),
+                            light[0] if len(light) > 0 else float('inf'),
+                            rem[0] if len(rem) > 0 else float('inf')])
+            end = np.max([deep[-1] if len(deep) > 0 else float('-inf'),
+                          light[-1] if len(light) > 0 else float('-inf'),
+                          rem[-1] if len(rem) > 0 else float('-inf')])
+
+        try:
+            self.intervals = self.intervals[start:end]
+        except TypeError:
+            self.intervals = self.intervals
         self.trimmed = True
 
     def draw(self):
@@ -126,7 +143,7 @@ class TrainingData:
         labels = [interval.label for interval in self.intervals]
 
         # plt.plot(xs, rr_means)
-        plt.plot(xs, rs_means, c='g')
+        plt.plot(xs, rr_delta_abs, c='g')
         # plt.plot(xs, rs_range, c='c')
 
         for i in range(len(xs)):
