@@ -42,6 +42,8 @@ class TrainingInterval:
         else:
             self.disp_RR = 0
 
+        self.disp_inv_RR = self.var_RR * self.mean_RR
+
         if self.mean_RS != 0:
             self.disp_RS = self.var_RS / self.mean_RS
         else:
@@ -168,6 +170,8 @@ class TrainingData:
         rr_disp = [interval.disp_RR for interval in self.intervals]
         rs_disp = [interval.disp_RS for interval in self.intervals]
 
+        rr_disp_inv = [interval.disp_inv_RR for interval in self.intervals]
+
         def draw_labels():
             for i in range(len(xs)):
                 if labels[i] == 'awake':
@@ -181,14 +185,14 @@ class TrainingData:
 
         # plt.plot(xs, rr_means)
         if draw_fig:
-            plt.plot(xs, rr_disp, c='g', alpha=.7)
+            plt.plot(xs, rs_delta_abs, c='g', alpha=.7)
             draw_labels()
             plt.show()
         if save_fig:
-            plt.plot(xs, rr_disp, c='g', alpha=.7)
+            plt.plot(xs, rs_delta_abs, c='g', alpha=.7)
             draw_labels()
-            plt.title("Respiratory Rate Index of Dispersion vs. 30s Interval")
-            plt.savefig(f"figures/vars/day{TrainingData.count}rr_disp")
+            plt.title("Respiratory Strength Absolute Change vs. 30s Interval")
+            plt.savefig(f"figures/vars/day{TrainingData.count}rs_delta_abs")
             plt.close()
         # plt.plot(xs, rs_disp, c='c', alpha=.7)
 
