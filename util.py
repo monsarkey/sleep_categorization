@@ -36,7 +36,7 @@ def parse_edf(dirname: str = "data/sleep-cassette/", trimmed: bool = False) -> (
             else:
                 df = data.to_df()
             prev = df
-            data.draw()
+            data.plot(draw_fig=False, save_fig=True)
             data_list.append(day_sleep)
 
         # if index == 11:

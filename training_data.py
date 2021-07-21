@@ -87,9 +87,12 @@ class TrainingInterval:
 # class for storing a collection of training intervals
 class TrainingData:
 
+    count = 0
+
     def __init__(self):
         self.intervals = []
         self.trimmed = False
+        TrainingData.count += 1
 
     def _set_trend_values(self, trend_len: int = 5):
         rr_delta = [interval.delta_RR for interval in self.intervals]
@@ -131,7 +134,7 @@ class TrainingData:
             self.intervals = self.intervals
         self.trimmed = True
 
-    def draw(self):
+    def plot(self, draw_fig: bool = True, save_fig: bool = False):
         xs = np.arange(len(self.intervals))
         self._set_trend_values(trend_len=10)
 
@@ -165,22 +168,29 @@ class TrainingData:
         rr_disp = [interval.disp_RR for interval in self.intervals]
         rs_disp = [interval.disp_RS for interval in self.intervals]
 
+        def draw_labels():
+            for i in range(len(xs)):
+                if labels[i] == 'awake':
+                    plt.axvspan(i, i + 1, facecolor='b', alpha=0.2)
+                elif labels[i] == 'light':
+                    plt.axvspan(i, i + 1, facecolor='b', alpha=0.4)
+                elif labels[i] == 'deep':
+                    plt.axvspan(i, i + 1, facecolor='b', alpha=0.6)
+                elif labels[i] == 'rem':
+                    plt.axvspan(i, i + 1, facecolor='r', alpha=0.6)
 
         # plt.plot(xs, rr_means)
-        plt.plot(xs, rr_disp, c='g', alpha=.7)
+        if draw_fig:
+            plt.plot(xs, rr_disp, c='g', alpha=.7)
+            draw_labels()
+            plt.show()
+        if save_fig:
+            plt.plot(xs, rr_disp, c='g', alpha=.7)
+            draw_labels()
+            plt.title("Respiratory Rate Index of Dispersion vs. 30s Interval")
+            plt.savefig(f"figures/vars/day{TrainingData.count}rr_disp")
+            plt.close()
         # plt.plot(xs, rs_disp, c='c', alpha=.7)
-
-        for i in range(len(xs)):
-            if labels[i] == 'awake':
-                plt.axvspan(i, i+1, facecolor='b', alpha=0.2)
-            elif labels[i] == 'light':
-                plt.axvspan(i, i+1, facecolor='b', alpha=0.4)
-            elif labels[i] == 'deep':
-                plt.axvspan(i, i+1, facecolor='b', alpha=0.6)
-            elif labels[i] == 'rem':
-                plt.axvspan(i, i+1, facecolor='r', alpha=0.6)
-
-        plt.show()
 
     def to_df(self) -> pd.DataFrame:
         self._set_trend_values(trend_len=10)
