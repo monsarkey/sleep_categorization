@@ -146,7 +146,7 @@ class TrainingData:
         self.rr_disp_inv = np.array([interval.disp_inv_RR for interval in self.intervals])
 
         self.gender = np.empty(len(self.intervals))
-        self.gender = self.gender.fill(self.intervals[0].gender)
+        self.gender.fill(self.intervals[0].gender)
 
     def _set_trend_values(self, trend_len: int = 5):
         rr_delta = [interval.delta_RR for interval in self.intervals]
@@ -229,7 +229,7 @@ class TrainingData:
                 "rr_disp": 2 * normalize(self.rr_disp),
                 "rr_trend": normalize(self.rr_trend),
                 "gender": self.gender,
-                "age": normalize(np.array([interval.age for interval in self.intervals])),
+                "age": np.array([interval.age for interval in self.intervals]),
                 "label": self.labels,
             }
         else:
