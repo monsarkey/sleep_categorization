@@ -27,7 +27,7 @@ def parse_edf(dirname: str = "data/sleep-cassette/", trimmed: bool = False) -> (
         if index % 2 != 0:
             day_sleep.split_epochs()
             day_sleep.clean_data()
-            # day_sleep.draw_resp(filename=filename, count=index//2, standardized=True, normalized=False, debug=True)
+            day_sleep.draw_resp(filename=filename, count=index//2, standardized=False, normalized=False, debug=True)
             data = day_sleep.get_intervals()
             if trimmed:
                 data.trim()
@@ -36,7 +36,7 @@ def parse_edf(dirname: str = "data/sleep-cassette/", trimmed: bool = False) -> (
             else:
                 df = data.to_df()
             prev = df
-            data.plot(draw_fig=False, save_fig=True)
+            # data.plot(draw_fig=False, save_fig=True, debug=True)
             data_list.append(day_sleep)
 
         # if index == 11:

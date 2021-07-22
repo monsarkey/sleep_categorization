@@ -136,9 +136,11 @@ class TrainingData:
             self.intervals = self.intervals
         self.trimmed = True
 
-    def plot(self, draw_fig: bool = True, save_fig: bool = False):
+    def plot(self, draw_fig: bool = True, save_fig: bool = False, debug: bool = False):
         xs = np.arange(len(self.intervals))
         self._set_trend_values(trend_len=10)
+
+        debug_str = "/debug" if debug else ""
 
         rr_means = [interval.mean_RR for interval in self.intervals]
         rs_means = [interval.mean_RS for interval in self.intervals]
@@ -189,10 +191,10 @@ class TrainingData:
             draw_labels()
             plt.show()
         if save_fig:
-            plt.plot(xs, rs_delta_abs, c='g', alpha=.7)
+            plt.plot(xs, rr_disp, c='g', alpha=.7)
             draw_labels()
-            plt.title("Respiratory Strength Absolute Change vs. 30s Interval")
-            plt.savefig(f"figures/vars/day{TrainingData.count}rs_delta_abs")
+            plt.title("Respiratory Rate Index of Dispersion vs. 30s Interval")
+            plt.savefig(f"figures{debug_str}/vars/day{TrainingData.count}rr_disp")
             plt.close()
         # plt.plot(xs, rs_disp, c='c', alpha=.7)
 

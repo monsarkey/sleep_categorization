@@ -137,16 +137,16 @@ class DaySleep:
 
                 plt.scatter(xs, std_rates, s=1)
                 plt.scatter(xs, std_strns, s=1, c='g')
-                plt.scatter(self.rates_outliers, self.std_rates[self.rates_outliers], c='r')
-                plt.scatter(self.strns_outliers, self.std_strns[self.strns_outliers], c='r')
+                # plt.scatter(self.rates_outliers, self.std_rates[self.rates_outliers], c='r')
+                # plt.scatter(self.strns_outliers, self.std_strns[self.strns_outliers], c='r')
                 plt.title(f"Standardized Breathing Rate / Str vs. 30s Epoch")
                 plt.savefig(f"figures{debug_str}/days/day{count + 1}_standardized.png")
                 plt.close()
         else:
             plt.scatter(xs, self.resp_rates, s=1)
             plt.scatter(xs, self.resp_strns, s=1, c='g')
-            plt.scatter(self.rates_outliers, self.resp_rates[self.rates_outliers], c='r')
-            plt.scatter(self.strns_outliers, self.resp_strns[self.strns_outliers], c='r')
+            # plt.scatter(self.rates_outliers, self.resp_rates[self.rates_outliers], c='r')
+            # plt.scatter(self.strns_outliers, self.resp_strns[self.strns_outliers], c='r')
             plt.title(f"Breathing Rate (breaths / min) and Str vs. 30s Epoch")
             plt.savefig(f"figures{debug_str}/days/day{count + 1}.png")
 
@@ -160,8 +160,37 @@ class DaySleep:
         self.std_rates = standardize(self.resp_rates)
         self.std_strns = standardize(self.resp_strns)
 
-        self.rates_outliers,  = np.where(np.abs(self.std_rates) > 3)
-        self.strns_outliers, = np.where(self.std_strns > 4)
+        # self.rates_outliers,  = np.where(np.abs(self.std_rates) > 3)
+        # self.strns_outliers, = np.where(self.std_strns > 4)
+
+        # dicts = {
+        #     'br. rates': self.std_rates,
+        #     'br. strns': self.std_strns,
+        # }
+
+        df = pd.DataFrame(data={
+            'br. rates': self.resp_rates,
+            'br. strns': self.resp_strns,
+            'br. rates std.': self.std_rates,
+            'br. strns std.': self.std_strns,
+        })
+
+        df_filtered = df[
+            (np.abs(df['br. rates std.']) < 2.5) &
+            (np.abs(df['br. strns std.']) < 3.5)
+        ]
+
+        df_filtered = df_filtered.reindex(index=(np.arange(len(df))), method='nearest')
+        self.resp_rates = df_filtered['br. rates']
+        self.resp_strns = df_filtered['br. strns']
+
+        # print(df_filtered)
+
+        # idx, bins = pd.cut(df.index, range(df_filtered.index[0], df_filtered.index[-1] + 2, 1), right=False, retbins=True)
+        # aux = df.groupby(idx).apply(np.mean)
+        # aux = aux.set_index(bins[:-1])
+
+        # print(aux)
 
     # separate timestamped sleep stages into 30s intervals
     def parse_labels(self, labels: [float, bytes, str], interval: int = 30):
