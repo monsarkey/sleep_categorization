@@ -1,24 +1,9 @@
 import pandas as pd
 import numpy as np
-# from scipy.signal import find_peaks
 from matplotlib import pyplot as plt
 from scipy.signal import argrelextrema
-# import time
 from training_data import TrainingInterval, TrainingData
-
-
-def standardize(arr: np.ndarray):
-    if len(arr) > 0:
-        return (arr - np.mean(arr)) / np.std(arr)
-    else:
-        return arr
-
-
-def normalize(arr: np.ndarray):
-    if len(arr) > 0:
-        return (arr - np.min(arr)) / np.ptp(arr)
-    else:
-        return arr
+from util import standardize, normalize
 
 
 class RespiratoryEpoch:
@@ -110,7 +95,7 @@ class DaySleep:
 
     # def _clean_resp_rates(self):
 
-    def draw_resp(self, filename: str, count: int = 0, normalized: bool = True,
+    def draw_resp(self, filename: str, count: int = 0, normalized: bool = False,
                   standardized: bool = False, debug: bool = False):
         if len(self.epochs) == 0:
             return
@@ -207,11 +192,11 @@ class DaySleep:
         self.labels = label_arr
 
     # TODO: split data into intervals for training and analysis
-    def get_intervals(self, interval: int = 30) -> [TrainingInterval]:
-        intervals = TrainingData()
+    def get_intervals(self, interval: int = 30, normalized: bool = False) -> TrainingData:
+        intervals_arr = []
 
         if self.data is None:
-            return intervals
+            return None
 
         sub_rates = np.array_split(self.resp_rates, len(self.resp_rates)//interval)
         sub_strns = np.array_split(self.resp_strns, len(self.resp_strns)//interval)
@@ -222,11 +207,11 @@ class DaySleep:
             # if we wanted, here we could pass in normalized or standardized resp_rates and resp_strns
             new_itvl = TrainingInterval(resp_rates=sub_rates[index], resp_strns=sub_strns[index],
                                         age=self.age, gender=self.gender, label=self.labels[index], prev=prev_itvl)
-            intervals.add(new_itvl)
+            intervals_arr.append(new_itvl)
             # pass in reference to previous training interval for analysis
             prev_itvl = new_itvl
 
-        return intervals
+        return TrainingData(intervals_arr, normalized=normalized)
 
     def split_epochs(self, interval: int = 30):
 
