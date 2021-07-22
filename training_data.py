@@ -104,11 +104,14 @@ class TrainingData:
 
     count = 0
 
-    def __init__(self, intervals: [TrainingInterval], normalized: bool = False):
+    def __init__(self, intervals: [TrainingInterval], trimmed: bool = False, normalized: bool = False):
         self.intervals = intervals
         self.trimmed = False
         self.normalized = normalized
         TrainingData.count += 1
+
+        if trimmed:
+            self.trim()
 
         self._set_trend_values(trend_len=10)
 

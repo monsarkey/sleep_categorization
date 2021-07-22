@@ -29,16 +29,17 @@ def parse_edf(dirname: str = "data/sleep-cassette/", trimmed: bool = False,
             if cleaned:
                 day_sleep.clean_data()
             # day_sleep.draw_resp(filename=filename, count=index//2, standardized=False, normalized=False, debug=True)
-            data = day_sleep.get_intervals(normalized=normalized)
-            if trimmed:
-                data.trim()
+            data = day_sleep.get_intervals(trimmed=trimmed, normalized=normalized)
+            # data.plot(draw_fig=False, save_fig=True, debug=True)
             if prev is not None:
                 df = pd.concat([prev, data.to_df()], ignore_index=True)
             else:
                 df = data.to_df()
             prev = df
-            # data.plot(draw_fig=False, save_fig=True, debug=True)
             data_list.append(day_sleep)
+
+        if index % 10 == 1:
+            print(f"finished processing day {index//2 + 1}...")
 
     return data_list, df
 

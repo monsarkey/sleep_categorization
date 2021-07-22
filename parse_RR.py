@@ -192,7 +192,7 @@ class DaySleep:
         self.labels = label_arr
 
     # TODO: split data into intervals for training and analysis
-    def get_intervals(self, interval: int = 30, normalized: bool = False) -> TrainingData:
+    def get_intervals(self, interval: int = 30, trimmed: bool = False, normalized: bool = False) -> TrainingData:
         intervals_arr = []
 
         if self.data is None:
@@ -211,7 +211,7 @@ class DaySleep:
             # pass in reference to previous training interval for analysis
             prev_itvl = new_itvl
 
-        return TrainingData(intervals_arr, normalized=normalized)
+        return TrainingData(intervals_arr, trimmed=trimmed, normalized=normalized)
 
     def split_epochs(self, interval: int = 30):
 
