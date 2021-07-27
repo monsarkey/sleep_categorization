@@ -23,9 +23,12 @@ def normalize(arr: np.ndarray):
 def sample(lst: [np.ndarray], frac: float = 0.8) -> (list, list):
     indices = [elt[0] for elt in random.sample(list(enumerate(lst)), int(frac * len(lst)))]
 
-    arr = np.array(lst)
-    train = arr[indices]
-    test = np.delete(lst, indices)
+    arr = np.array(lst, dtype=object)
+    mask = np.ones(len(arr), dtype=bool)
+
+    mask[indices] = False
+    test = arr[mask]
+    train = arr[~mask]
 
     return train, test
 

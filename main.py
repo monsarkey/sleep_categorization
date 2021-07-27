@@ -30,7 +30,7 @@ if __name__ == '__main__':
     train_data, test_data = sample(data, .9)
     del data
 
-    train_in, train_out = []
+    train_in, train_out = [(elt[:-1], elt[-1]) for elt in train_data]
     print(train_data)
     # cnn = CNN1D((10, 1))
     # print(data)
