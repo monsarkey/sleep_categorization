@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import random
 
 
 def standardize(arr: np.ndarray):
@@ -16,3 +18,21 @@ def normalize(arr: np.ndarray):
         return new_arr.fill(.5)
     else:
         return arr
+
+
+def sample(lst: [np.ndarray], frac: float = 0.8) -> (list, list):
+    indices = [elt[0] for elt in random.sample(list(enumerate(lst)), int(frac * len(lst)))]
+
+    arr = np.array(lst)
+    train = arr[indices]
+    test = np.delete(lst, indices)
+
+    return train, test
+
+
+def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
+    batches = []
+    num_batches = (len(df) // batch_size) + 1
+    for i in range(num_batches):
+        batches.append(df[i * batch_size:(i+1) * batch_size])
+    return batches
