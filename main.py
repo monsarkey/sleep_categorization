@@ -14,8 +14,10 @@ cleaned_str = "_cleaned" if cleaned else ""
 normalized = True
 normalized_str = "_normalized" if cleaned else ""
 
-epochs = 6
-batch_size = 4
+predicting = True
+
+epochs = 4
+batch_size = 20
 input_len = 1
 nr_params = 10
 
@@ -37,7 +39,7 @@ if __name__ == '__main__':
     data = [batch.values for batch in batches]
 
     train_data, test_data = sample(data, .9)
-    del data
+    # del data
 
     # returns all columns but last, and then only last as np arrays
     def split(elt):
@@ -79,6 +81,24 @@ if __name__ == '__main__':
 
     score = cnn.evaluate(test_in, test_out)
     print('accuracy: ', score[1] * 100, '%')
+
+    if predicting:
+        predict_in, predict_out = map(list, zip(*[split(elt) for elt in data]))
+
+        predict_in = np.concatenate(predict_in)
+        predict_out = np.concatenate(predict_out)
+
+        predict_in = np.asarray(predict_in).astype(np.float32)
+        predict_out = pd.get_dummies(predict_out)
+
+        predict_in = predict_in.reshape(predict_in.shape[0] // input_len, input_len, nr_params)
+        predict_out = np.asarray(predict_out).reshape(predict_out.shape[0] // input_len, 4)
+
+        output = cnn.predict(predict_in, batch_size=batch_size)
+        predictions = np.array([elt.tolist().index(max(elt)) for elt in output])
+        # labels = np.array([['awake', 'light', 'deep', 'rem'][val] for val in predictions])
+        # labels = pd.Series(labels)
+
 
     # print(data)
 
