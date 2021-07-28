@@ -1,6 +1,7 @@
 from load_data import edf_to_csv
 from util import split_dataframe, sample
 import pandas as pd
+from keras.utils import to_categorical, np_utils
 import numpy as np
 from model import CNN1D
 
@@ -30,7 +31,15 @@ if __name__ == '__main__':
     train_data, test_data = sample(data, .9)
     del data
 
-    train_in, train_out = [(elt[:-1], elt[-1]) for elt in train_data]
+    # returns all columns but last, and then only last as np arrays
+    def split(elt):
+        return elt[:, :-1], elt[:, -1]
+
+    train_in, train_out = map(list, zip(*[split(elt) for elt in train_data]))
+    test_in, test_out = map(list, zip(*[split(elt) for elt in test_data]))
+
+    train_out = [pd.Series(elt, dtype='category').values for elt in train_out]
+    test_out = [pd.Series(elt, dtype='category').values for elt in test_out]
     print(train_data)
     # cnn = CNN1D((10, 1))
     # print(data)

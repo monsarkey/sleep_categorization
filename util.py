@@ -35,7 +35,7 @@ def sample(lst: [np.ndarray], frac: float = 0.8) -> (list, list):
 
 def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
     batches = []
-    num_batches = (len(df) // batch_size) + 1
+    num_batches = (len(df) // batch_size)
     for i in range(num_batches):
         batches.append(df[i * batch_size:(i+1) * batch_size])
     return batches
