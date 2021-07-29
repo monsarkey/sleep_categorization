@@ -2,6 +2,7 @@ from load_data import edf_to_csv
 from util import split_dataframe, sample
 import pandas as pd
 # from keras.utils import to_categorical, np_utils
+import tensorflow as tf
 import numpy as np
 from model import CNN1D
 
@@ -11,12 +12,12 @@ trimmed_str = "_trimmed" if trimmed else ""
 cleaned = True
 cleaned_str = "_cleaned" if cleaned else ""
 
-normalized = True
-normalized_str = "_normalized" if cleaned else ""
+normalized = False
+normalized_str = "_normalized" if normalized else ""
 
 predicting = True
 
-epochs = 4
+epochs = 8
 batch_size = 20
 input_len = 1
 nr_params = 10
@@ -95,8 +96,24 @@ if __name__ == '__main__':
         predict_out = np.asarray(predict_out).reshape(predict_out.shape[0] // input_len, 4)
 
         output = cnn.predict(predict_in, batch_size=batch_size)
+
+        m = tf.keras.metrics.CategoricalAccuracy()
+        m.update_state(y_true=predict_out, y_pred=output)
+        print(f"Categorical Accuracy after prediction (from keras): {m.result().numpy()}")
+
         predictions = np.array([elt.tolist().index(max(elt)) for elt in output])
-        # labels = np.array([['awake', 'light', 'deep', 'rem'][val] for val in predictions])
+        labels = np.array([['awake', 'light', 'deep', 'rem'][val] for val in predictions])
+        df['out_label'] = labels
+        df.join(pd.DataFrame(output, columns=['awake%', 'light%', 'deep%', 'rem%']))
+
+        incorr = np.where((df['label'] != df['out_label']), 1, 0)
+        total_wrong = np.sum(incorr)
+        print(f"Categorical Accuracy after prediction (manually computed): {1 - (total_wrong/len(predictions))}")
+        df['incorr'] = incorr
+
+        df.to_csv(f"data/edf_data{trimmed_str}{cleaned_str}{normalized_str}_output.csv")
+
+
         # labels = pd.Series(labels)
 
 
