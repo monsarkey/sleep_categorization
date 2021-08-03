@@ -42,7 +42,6 @@ if __name__ == '__main__':
     # del df['Unnamed: 0']
     # df['age'] = pd.Series(df['age'].values.astype(np.float32))
     # df['gender'] = pd.Series(df['gender'].values.astype(np.float32))
-    # del df['age']
     batches = split_dataframe(df, batch_size=batch_size)
     data = [batch.values for batch in batches]
 
@@ -61,24 +60,12 @@ if __name__ == '__main__':
     test_in = np.concatenate(test_in)
     test_out = np.concatenate(test_out)
 
-    # train_out = [pd.get_dummies(elt).values for elt in train_out]
-    # test_out = [pd.get_dummies(elt).values for elt in test_out]
-
     train_out = pd.get_dummies(train_out)
     test_out = pd.get_dummies(test_out)
-
-    # train_in = [np.asarray(elt).astype(np.float32) for elt in train_in]
-    # test_in = [np.asarray(elt).astype(np.float32) for elt in test_in]
 
     train_in = np.asarray(train_in).astype(np.float32)
     test_in = np.asarray(test_in).astype(np.float32)
 
-    # train_in.reshape(train_in.shape[0], )
-    # train_out = np.asarray(train_out).astype(np.float32)
-
-
-
-    # print(train_data)
     # model = SimpleFF((nr_params,))
     model = CNN1D((input_len, nr_params))
     train_in = train_in.reshape(train_in.shape[0]//input_len, input_len, nr_params)
@@ -111,7 +98,12 @@ if __name__ == '__main__':
         m = tf.keras.metrics.CategoricalAccuracy()
         m.update_state(y_true=predict_out, y_pred=output)
         print(f"Categorical Accuracy after prediction (from keras): {m.result().numpy()}")
-
+        # untrimmed weights
+        # output[:, 2] -= .41
+        # output[:, 1] += .22
+        output[:, 2] -= .5
+        output[:, 1] += .3
+        output[:, 3] -= .15
         predictions = np.array([elt.tolist().index(max(elt)) for elt in output])
         labels = np.array([['awake', 'light', 'deep', 'rem'][val] for val in predictions])
         df['out_label'] = labels
