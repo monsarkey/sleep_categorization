@@ -24,5 +24,5 @@ class SimpleFF(nn.Module):
 
         x = self.fc4(x)
 
-        output = F.log_softmax(x, dim=1)
+        output = F.softmax(x, dim=1)
         return output
