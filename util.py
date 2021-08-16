@@ -44,3 +44,28 @@ def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
 # returns all columns but last, and then only last as np arrays
 def split(elt):
     return elt[:, :-1], elt[:, -1]
+
+
+def parse_df(df: pd.DataFrame, batch_size: int = 10) -> \
+        ([np.ndarray], np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+
+    batches = split_dataframe(df, batch_size=batch_size)
+    data = [batch.values for batch in batches]
+
+    train_data, test_data = sample(data, .9)
+
+    train_in, train_out = map(list, zip(*[split(elt) for elt in train_data]))
+    test_in, test_out = map(list, zip(*[split(elt) for elt in test_data]))
+
+    train_in = np.concatenate(train_in)
+    train_out = np.concatenate(train_out)
+    test_in = np.concatenate(test_in)
+    test_out = np.concatenate(test_out)
+
+    train_out = pd.get_dummies(train_out)
+    test_out = pd.get_dummies(test_out)
+
+    train_in = np.asarray(train_in).astype(np.float32)
+    test_in = np.asarray(test_in).astype(np.float32)
+
+    return data, train_in, train_out, test_in, test_out
