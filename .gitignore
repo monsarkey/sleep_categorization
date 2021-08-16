@@ -4,3 +4,4 @@ backup/
 data*
 .idea/
 __pycache__/
+pptx/
