@@ -39,3 +39,8 @@ def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
     for i in range(num_batches):
         batches.append(df[i * batch_size:(i+1) * batch_size])
     return batches
+
+
+# returns all columns but last, and then only last as np arrays
+def split(elt):
+    return elt[:, :-1], elt[:, -1]

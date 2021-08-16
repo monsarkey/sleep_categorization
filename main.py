@@ -1,10 +1,5 @@
 from load_data import edf_to_csv
-from util import split_dataframe, sample
 import pandas as pd
-# from keras.utils import to_categorical, np_utils
-import tensorflow as tf
-import numpy as np
-from keras_model import CNN1D, SimpleFF
 from keras_train import keras_train
 
 trimmed = True

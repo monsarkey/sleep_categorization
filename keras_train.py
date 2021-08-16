@@ -1,26 +1,13 @@
 from util import split_dataframe, sample
 import pandas as pd
-# from keras.utils import to_categorical, np_utils
 import tensorflow as tf
 import numpy as np
 from keras_model import CNN1D, SimpleFF
+from util import split
 
 
-def keras_train(df: pd.DataFrame):
-
-    predicting = True
-
-    epochs = 14
-    batches_per_epoch = 4616
-    input_len = 1
-    nr_params = 12
-
-    batch_size = (len(df) // batches_per_epoch)
-
-    to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
-
-    df = df.drop(to_del, axis=1)
-    nr_params -= len(to_del)
+def parse_df(df: pd.DataFrame, nr_params: int, batch_size: int = 10) -> \
+        ([np.ndarray], np.ndarray, np.ndarray, np.ndarray, np.ndarray):
 
     # print(df)
     # del df['Unnamed: 0']
@@ -30,12 +17,6 @@ def keras_train(df: pd.DataFrame):
     data = [batch.values for batch in batches]
 
     train_data, test_data = sample(data, .9)
-
-    # del data
-
-    # returns all columns but last, and then only last as np arrays
-    def split(elt):
-        return elt[:, :-1], elt[:, -1]
 
     train_in, train_out = map(list, zip(*[split(elt) for elt in train_data]))
     test_in, test_out = map(list, zip(*[split(elt) for elt in test_data]))
@@ -50,6 +31,27 @@ def keras_train(df: pd.DataFrame):
 
     train_in = np.asarray(train_in).astype(np.float32)
     test_in = np.asarray(test_in).astype(np.float32)
+
+    return data, train_in, train_out, test_in, test_out
+
+
+def keras_train(df: pd.DataFrame):
+
+    predicting = True
+
+    epochs = 14
+    batches_per_epoch = 4616
+    input_len = 1
+    nr_params = 12
+
+    batch_size = (len(df) // batches_per_epoch)
+
+    # specify columns to drop from dataframe for training
+    to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
+    df = df.drop(to_del, axis=1)
+    nr_params -= len(to_del)
+
+    data, train_in, train_out, test_in, test_out = parse_df(df, nr_params, batch_size)
 
     # model = SimpleFF((nr_params,))
     model = CNN1D((input_len, nr_params))
