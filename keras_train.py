@@ -6,7 +6,7 @@ from keras_model import CNN1D, SimpleFF
 from util import split
 
 
-def parse_df(df: pd.DataFrame, nr_params: int, batch_size: int = 10) -> \
+def parse_df(df: pd.DataFrame, batch_size: int = 10) -> \
         ([np.ndarray], np.ndarray, np.ndarray, np.ndarray, np.ndarray):
 
     # print(df)
@@ -51,7 +51,7 @@ def keras_train(df: pd.DataFrame):
     df = df.drop(to_del, axis=1)
     nr_params -= len(to_del)
 
-    data, train_in, train_out, test_in, test_out = parse_df(df, nr_params, batch_size)
+    data, train_in, train_out, test_in, test_out = parse_df(df, batch_size)
 
     # model = SimpleFF((nr_params,))
     model = CNN1D((input_len, nr_params))
