@@ -5,7 +5,8 @@ import pandas as pd
 import numpy as np
 from torch_model import SimpleFF
 from matplotlib import pyplot as plt
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from seaborn import heatmap
+from sklearn.metrics import confusion_matrix
 from util import parse_df
 
 
@@ -111,8 +112,19 @@ def torch_train(df: pd.DataFrame):
     print(f"Validation accuracy: {val_acc * 100:.2f}%")
     draw_acc(epoch_acc_list, val_acc)
 
-    conf = confusion_matrix(true, pred)
-    disp = ConfusionMatrixDisplay(conf)
-    disp.plot()
+    columns = ['awake', 'light', 'deep', 'rem']
+
+    true = np.array([columns[val] for val in true])
+    pred = np.array([columns[val] for val in pred])
+
+    conf = confusion_matrix(true, pred, labels=columns)
+    df_cm = pd.DataFrame(conf, index=columns, columns=columns)
+
+    figure = plt.figure(figsize=(4, 4))
+    heatmap(df_cm, annot=True, cmap="flare", fmt="d")
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.title('Confusion Matrix on Validation Data')
+    plt.show()
 
     return df, model
