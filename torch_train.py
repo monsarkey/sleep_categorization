@@ -23,6 +23,9 @@ def draw_epoch_acc(acc_arr: list, val_acc_arr: list):
     xs = np.arange(len(acc_arr))
     plt.plot(xs, acc_arr)
     plt.plot(xs, val_acc_arr, color='r')
+    plt.title("Accuracy per epoch in training and validation data")
+    plt.xlabel("Epoch #")
+    plt.ylabel("Accuracy (%)")
     plt.show()
 
 def draw_conf(pred, true, name: str = None):
@@ -56,7 +59,7 @@ def torch_train(df: pd.DataFrame):
 
     predicting = True
 
-    epochs = 1
+    epochs = 18
     learning_rate = .0002
     batches_per_epoch = 4616
     input_len = 1
@@ -93,17 +96,18 @@ def torch_train(df: pd.DataFrame):
 
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
+
         batch_acc_list = []
         val_batch_acc_list = []
-        train_preds =[]
-        train_vals = []
+        train_preds = []
+        train_labels = []
         val_preds = []
         val_labels = []
+
         for i, (inputs, labels) in enumerate(train_load):
 
             outputs = model(inputs)
             labels = torch.max(labels, 1)[1]
-            # loss = criterion(outputs, labels)
             loss = modified_crossentropy_loss(outputs, labels)
             loss_list.append(loss.item())
 
@@ -114,6 +118,9 @@ def torch_train(df: pd.DataFrame):
             total = labels.size(0)
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
+
+            train_preds.extend(predicted)
+            train_labels.extend(labels)
             batch_acc_list.append(correct / total)
 
             if (i + 1) % 100 == 0:
@@ -122,6 +129,7 @@ def torch_train(df: pd.DataFrame):
 
         epoch_acc = np.average(batch_acc_list)
         epoch_acc_list.append(epoch_acc)
+        draw_conf(train_preds, train_labels, name=f"conf_epoch{epoch + 1}_train")
 
         print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
 
@@ -133,9 +141,13 @@ def torch_train(df: pd.DataFrame):
             total = labels.size(0)
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
+
+            val_preds.extend(predicted)
+            val_labels.extend(labels)
             val_batch_acc_list.append(correct / total)
 
         epoch_val_acc_list.append(np.average(val_batch_acc_list))
+        draw_conf(val_preds, val_labels, name=f"conf_epoch{epoch + 1}_validation")
         print(f"Epoch #{epoch + 1} Validation Accuracy: {(np.average(val_batch_acc_list) * 100):.2f}%")
 
 
@@ -143,7 +155,7 @@ def torch_train(df: pd.DataFrame):
 
     draw_epoch_acc(epoch_acc_list, epoch_val_acc_list)
 
-    print("Testing: ")
+    print("----------- Testing ----------- ")
     model.eval()
     with torch.no_grad():
         correct = 0
