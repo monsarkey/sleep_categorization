@@ -1,27 +1,62 @@
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 from torch_model import SimpleFF
+
 from matplotlib import pyplot as plt
 from seaborn import heatmap
 from sklearn.metrics import confusion_matrix
 from util import parse_df
 
 
-def draw_acc(acc_arr: list, val_acc: float = None):
+# def draw_acc(acc_arr: list, val_acc: float = None):
+#     xs = np.arange(len(acc_arr))
+#     plt.plot(xs, acc_arr)
+#     if val_acc:
+#         plt.axhline(y=val_acc, color='r')
+#     plt.show()
+
+def draw_epoch_acc(acc_arr: list, val_acc_arr: list):
     xs = np.arange(len(acc_arr))
     plt.plot(xs, acc_arr)
-    if val_acc:
-        plt.axhline(y=val_acc, color='r')
+    plt.plot(xs, val_acc_arr, color='r')
     plt.show()
+
+def draw_conf(pred, true, name: str = None):
+    columns = ['awake', 'light', 'deep', 'rem']
+
+    true = np.array([columns[val] for val in true])
+    pred = np.array([columns[val] for val in pred])
+
+    conf = confusion_matrix(true, pred, labels=columns)
+    df_cm = pd.DataFrame(conf, index=columns, columns=columns)
+
+    figure = plt.figure(figsize=(4, 4))
+    heatmap(df_cm, annot=True, cmap="flare", fmt="d")
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+
+    if name:
+        plt.title(name)
+        plt.savefig(f"figures/confusion_matrices/{name}")
+
+    plt.show()
+
+def modified_crossentropy_loss(pred, true):
+    log_prob = -1.0 * F.log_softmax(pred, 1)
+    loss = log_prob.gather(1, true.unsqueeze(1))
+    loss = loss.mean()
+    return loss
+
 
 def torch_train(df: pd.DataFrame):
 
     predicting = True
 
-    epochs = 10
+    epochs = 1
     learning_rate = .0002
     batches_per_epoch = 4616
     input_len = 1
@@ -53,17 +88,23 @@ def torch_train(df: pd.DataFrame):
 
     total_step = len(train_load)
     loss_list = []
-    acc_list = []
     epoch_acc_list = []
+    epoch_val_acc_list = []
 
     for epoch in range(epochs):
-        print(f"Epoch #{epoch + 1}")
+        print(f"----------- Epoch #{epoch + 1} -----------")
         batch_acc_list = []
+        val_batch_acc_list = []
+        train_preds =[]
+        train_vals = []
+        val_preds = []
+        val_labels = []
         for i, (inputs, labels) in enumerate(train_load):
 
             outputs = model(inputs)
             labels = torch.max(labels, 1)[1]
-            loss = criterion(outputs, labels)
+            # loss = criterion(outputs, labels)
+            loss = modified_crossentropy_loss(outputs, labels)
             loss_list.append(loss.item())
 
             optimizer.zero_grad()
@@ -73,7 +114,6 @@ def torch_train(df: pd.DataFrame):
             total = labels.size(0)
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
-            acc_list.append(correct / total)
             batch_acc_list.append(correct / total)
 
             if (i + 1) % 100 == 0:
@@ -82,11 +122,26 @@ def torch_train(df: pd.DataFrame):
 
         epoch_acc = np.average(batch_acc_list)
         epoch_acc_list.append(epoch_acc)
-        draw_acc(batch_acc_list)
 
-        print(f"Avg. Accuracy in Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
+        print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
 
-    draw_acc(acc_list)
+        for i, (inputs, labels) in enumerate(test_load):
+
+            outputs = model(inputs)
+            labels = torch.max(labels, 1)[1]
+
+            total = labels.size(0)
+            _, predicted = torch.max(outputs.data, 1)
+            correct = (predicted == labels).sum().item()
+            val_batch_acc_list.append(correct / total)
+
+        epoch_val_acc_list.append(np.average(val_batch_acc_list))
+        print(f"Epoch #{epoch + 1} Validation Accuracy: {(np.average(val_batch_acc_list) * 100):.2f}%")
+
+
+        # draw_acc(batch_acc_list)
+
+    draw_epoch_acc(epoch_acc_list, epoch_val_acc_list)
 
     print("Testing: ")
     model.eval()
@@ -110,21 +165,7 @@ def torch_train(df: pd.DataFrame):
     val_acc = correct / total
 
     print(f"Validation accuracy: {val_acc * 100:.2f}%")
-    draw_acc(epoch_acc_list, val_acc)
-
-    columns = ['awake', 'light', 'deep', 'rem']
-
-    true = np.array([columns[val] for val in true])
-    pred = np.array([columns[val] for val in pred])
-
-    conf = confusion_matrix(true, pred, labels=columns)
-    df_cm = pd.DataFrame(conf, index=columns, columns=columns)
-
-    figure = plt.figure(figsize=(4, 4))
-    heatmap(df_cm, annot=True, cmap="flare", fmt="d")
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.title('Confusion Matrix on Validation Data')
-    plt.show()
+    # draw_acc(epoch_acc_list, val_acc)
+    draw_conf(pred, true, name="conf_final_validation")
 
     return df, model
