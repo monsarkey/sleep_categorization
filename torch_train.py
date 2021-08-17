@@ -5,19 +5,22 @@ import pandas as pd
 import numpy as np
 from torch_model import SimpleFF
 from matplotlib import pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 from util import parse_df
 
 
-def draw_acc(acc_arr: list):
+def draw_acc(acc_arr: list, val_acc: float = None):
     xs = np.arange(len(acc_arr))
-    plt.scatter(xs, acc_arr, s=1)
+    plt.plot(xs, acc_arr)
+    if val_acc:
+        plt.axhline(y=val_acc, color='r')
     plt.show()
 
 def torch_train(df: pd.DataFrame):
 
     predicting = True
 
-    epochs = 14
+    epochs = 10
     learning_rate = .0002
     batches_per_epoch = 4616
     input_len = 1
@@ -50,6 +53,7 @@ def torch_train(df: pd.DataFrame):
     total_step = len(train_load)
     loss_list = []
     acc_list = []
+    epoch_acc_list = []
 
     for epoch in range(epochs):
         print(f"Epoch #{epoch + 1}")
@@ -75,9 +79,40 @@ def torch_train(df: pd.DataFrame):
                 print(f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{total_step}], "
                       f"Loss: {loss.item():.4f}, Accuracy: {((correct / total) * 100):.2f}%")
 
-        print(f"Avg. Accuracy in Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
+        epoch_acc = np.average(batch_acc_list)
+        epoch_acc_list.append(epoch_acc)
         draw_acc(batch_acc_list)
 
+        print(f"Avg. Accuracy in Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
+
     draw_acc(acc_list)
+
+    print("Testing: ")
+    model.eval()
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        true = []
+        pred = []
+        for inputs, labels in test_load:
+            outputs = model(inputs)
+            labels = torch.max(labels, 1)[1]
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+
+            for i in range(len(labels)):
+                true.append(labels[i].item())
+                pred.append(predicted[i].item())
+
+            correct += (predicted == labels).sum().item()
+
+    val_acc = correct / total
+
+    print(f"Validation accuracy: {val_acc * 100:.2f}%")
+    draw_acc(epoch_acc_list, val_acc)
+
+    conf = confusion_matrix(true, pred)
+    disp = ConfusionMatrixDisplay(conf)
+    disp.plot()
 
     return df, model
