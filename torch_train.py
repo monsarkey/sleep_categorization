@@ -45,8 +45,9 @@ def draw_conf(pred, true, name: str = None):
     if name:
         plt.title(name)
         plt.savefig(f"figures/confusion_matrices/{name}")
-
-    plt.show()
+        plt.close()
+    else:
+        plt.show()
 
 def modified_crossentropy_loss(pred, true):
     log_prob = -1.0 * F.log_softmax(pred, 1)
@@ -58,21 +59,25 @@ def modified_crossentropy_loss(pred, true):
 def torch_train(df: pd.DataFrame):
 
     predicting = True
+    debug = True
 
-    epochs = 18
-    learning_rate = .0002
+    epochs = 1000
+    learning_rate = .005
     batches_per_epoch = 4616
     input_len = 1
     nr_params = 12
 
-    batch_size = (len(df) // batches_per_epoch)
+    if not debug:
+        batch_size = (len(df) // batches_per_epoch)
+    else:
+        batch_size = 4
 
     # specify columns to drop from dataframe for training
     to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
     df = df.drop(to_del, axis=1)
     nr_params -= len(to_del)
 
-    data, train_in, train_out, test_in, test_out = parse_df(df, batch_size)
+    data, train_in, train_out, test_in, test_out = parse_df(df, batch_size, debug=True)
 
     model = SimpleFF((nr_params,))
     train_in = train_in.reshape(train_in.shape[0] // input_len, nr_params)
@@ -96,6 +101,9 @@ def torch_train(df: pd.DataFrame):
 
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
+
+        if epoch % 100 == 0:
+            optimizer.param_groups[0]['lr'] /= 1.8
 
         batch_acc_list = []
         val_batch_acc_list = []
@@ -123,13 +131,13 @@ def torch_train(df: pd.DataFrame):
             train_labels.extend(labels)
             batch_acc_list.append(correct / total)
 
-            if (i + 1) % 100 == 0:
-                print(f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{total_step}], "
-                      f"Loss: {loss.item():.4f}, Accuracy: {((correct / total) * 100):.2f}%")
+            # if (i + 1) % batch_size == 0:
+            #     print(f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{total_step}], "
+            #           f"Loss: {loss.item():.4f}, Accuracy: {((correct / total) * 100):.2f}%")
 
         epoch_acc = np.average(batch_acc_list)
         epoch_acc_list.append(epoch_acc)
-        draw_conf(train_preds, train_labels, name=f"conf_epoch{epoch + 1}_train")
+        draw_conf(train_preds, train_labels, name=f"/training/conf_epoch{epoch + 1}_train")
 
         print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
 
@@ -147,7 +155,7 @@ def torch_train(df: pd.DataFrame):
             val_batch_acc_list.append(correct / total)
 
         epoch_val_acc_list.append(np.average(val_batch_acc_list))
-        draw_conf(val_preds, val_labels, name=f"conf_epoch{epoch + 1}_validation")
+        draw_conf(val_preds, val_labels, name=f"/validation/conf_epoch{epoch + 1}_validation")
         print(f"Epoch #{epoch + 1} Validation Accuracy: {(np.average(val_batch_acc_list) * 100):.2f}%")
 
 

@@ -46,13 +46,36 @@ def split(elt):
     return elt[:, :-1], elt[:, -1]
 
 
-def parse_df(df: pd.DataFrame, batch_size: int = 10) -> \
+def parse_df(df: pd.DataFrame, batch_size: int = 10, debug: bool = False) -> \
         ([np.ndarray], np.ndarray, np.ndarray, np.ndarray, np.ndarray):
 
     batches = split_dataframe(df, batch_size=batch_size)
     data = [batch.values for batch in batches]
 
-    train_data, test_data = sample(data, .9)
+    if not debug:
+        train_data, test_data = sample(data, .9)
+    else:
+        _, test_data = sample(data, .9)
+
+        debug_sample_size = 5
+        try:
+            debug_train_ind = pd.read_csv(f"data/debug/set{debug_sample_size * 4}.csv").values.transpose()[1]
+        except FileNotFoundError:
+
+            debug_train_ind = []
+            debug_train_ind.extend(
+                df.loc[df['label'] == 'awake'].sample(debug_sample_size, random_state=1).index.values[:])
+            debug_train_ind.extend(
+                df.loc[df['label'] == 'light'].sample(debug_sample_size, random_state=1).index.values[:])
+            debug_train_ind.extend(
+                df.loc[df['label'] == 'deep'].sample(debug_sample_size, random_state=1).index.values[:])
+            debug_train_ind.extend(
+                df.loc[df['label'] == 'rem'].sample(debug_sample_size, random_state=1).index.values[:])
+            pd.DataFrame(debug_train_ind).to_csv(f"data/debug/set{debug_sample_size * 4}.csv")
+
+        train_data = df.iloc[debug_train_ind].values
+        train_data = train_data.reshape(train_data.shape[0] // batch_size, batch_size, 6)
+        # train_out = train_out.iloc[debug_train_ind]
 
     train_in, train_out = map(list, zip(*[split(elt) for elt in train_data]))
     test_in, test_out = map(list, zip(*[split(elt) for elt in test_data]))
