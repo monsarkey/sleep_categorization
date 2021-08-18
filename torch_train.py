@@ -28,6 +28,14 @@ def draw_epoch_acc(acc_arr: list, val_acc_arr: list):
     plt.ylabel("Accuracy (%)")
     plt.show()
 
+def draw_epoch_loss(loss_arr: list):
+    xs = np.arange(len(loss_arr))
+    plt.plot(xs, loss_arr)
+    plt.title("Loss per epoch in training data")
+    plt.xlabel("Epoch #")
+    plt.ylabel("Loss")
+    plt.show()
+
 def draw_conf(pred, true, name: str = None):
     columns = ['awake', 'light', 'deep', 'rem']
 
@@ -59,25 +67,26 @@ def modified_crossentropy_loss(pred, true):
 def torch_train(df: pd.DataFrame):
 
     predicting = True
-    debug = True
+    debug = False
 
-    epochs = 1000
-    learning_rate = .005
-    batches_per_epoch = 4616
+    epochs = 8
+    learning_rate = .009
+    # batches_per_epoch = 4616
+    batches_per_epoch = 2400
     input_len = 1
     nr_params = 12
 
     if not debug:
         batch_size = (len(df) // batches_per_epoch)
     else:
-        batch_size = 4
+        batch_size = 10
 
     # specify columns to drop from dataframe for training
     to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
     df = df.drop(to_del, axis=1)
     nr_params -= len(to_del)
 
-    data, train_in, train_out, test_in, test_out = parse_df(df, batch_size, debug=True)
+    data, train_in, train_out, test_in, test_out = parse_df(df, batch_size, debug=debug)
 
     model = SimpleFF((nr_params,))
     train_in = train_in.reshape(train_in.shape[0] // input_len, nr_params)
@@ -95,15 +104,16 @@ def torch_train(df: pd.DataFrame):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     total_step = len(train_load)
-    loss_list = []
+
     epoch_acc_list = []
     epoch_val_acc_list = []
+    epoch_loss_list = []
 
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
 
         if epoch % 100 == 0:
-            optimizer.param_groups[0]['lr'] /= 1.8
+            optimizer.param_groups[0]['lr'] *= .9
 
         batch_acc_list = []
         val_batch_acc_list = []
@@ -111,6 +121,8 @@ def torch_train(df: pd.DataFrame):
         train_labels = []
         val_preds = []
         val_labels = []
+
+        loss_list = []
 
         for i, (inputs, labels) in enumerate(train_load):
 
@@ -137,9 +149,13 @@ def torch_train(df: pd.DataFrame):
 
         epoch_acc = np.average(batch_acc_list)
         epoch_acc_list.append(epoch_acc)
+
+        epoch_loss = np.average(loss_list)
+        epoch_loss_list.append(epoch_loss)
         draw_conf(train_preds, train_labels, name=f"/training/conf_epoch{epoch + 1}_train")
 
-        print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {np.average(batch_acc_list) * 100:.2f}%")
+        print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {epoch_acc * 100:.2f}%")
+        print(f"Avg. Loss in Training Epoch #{epoch + 1}: {epoch_loss:.4f}")
 
         for i, (inputs, labels) in enumerate(test_load):
 
@@ -162,6 +178,7 @@ def torch_train(df: pd.DataFrame):
         # draw_acc(batch_acc_list)
 
     draw_epoch_acc(epoch_acc_list, epoch_val_acc_list)
+    draw_epoch_loss(epoch_loss_list)
 
     print("----------- Testing ----------- ")
     model.eval()
