@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
 import random
+import torch
+import matplotlib.pyplot as plt
 
+from seaborn import heatmap
+from sklearn.metrics import confusion_matrix
 
 def standardize(arr: np.ndarray):
     if len(arr) > 0 and (std := np.std(arr)) != 0:
@@ -92,3 +96,26 @@ def parse_df(df: pd.DataFrame, batch_size: int = 10, debug: bool = False) -> \
     test_in = np.asarray(test_in).astype(np.float32)
 
     return data, train_in, train_out, test_in, test_out
+
+
+def draw_conf(pred: [torch.Tensor], true: [torch.Tensor], name: str = None):
+    columns = ['awake', 'light', 'deep', 'rem']
+
+    if not isinstance(true, np.ndarray) or not isinstance(pred, np.ndarray):
+        true = np.array([columns[val] for val in true])
+        pred = np.array([columns[val] for val in pred])
+
+    conf = confusion_matrix(true, pred, labels=columns)
+    df_cm = pd.DataFrame(conf, index=columns, columns=columns)
+
+    figure = plt.figure(figsize=(4, 4))
+    heatmap(df_cm, annot=True, cmap="flare", fmt="d")
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+
+    if name:
+        plt.title(name)
+        plt.savefig(f"figures/confusion_matrices/{name}")
+        plt.close()
+    else:
+        plt.show()

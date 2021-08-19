@@ -10,7 +10,7 @@ from torch_model import SimpleFF
 from matplotlib import pyplot as plt
 from seaborn import heatmap
 from sklearn.metrics import confusion_matrix
-from util import parse_df
+from util import parse_df, draw_conf
 
 
 # def draw_acc(acc_arr: list, val_acc: float = None):
@@ -37,38 +37,17 @@ def draw_epoch_loss(loss_arr: list):
     plt.ylabel("Loss")
     plt.show()
 
-def draw_conf(pred: [torch.Tensor], true: [torch.Tensor], name: str = None):
-    columns = ['awake', 'light', 'deep', 'rem']
 
-    if not isinstance(true, np.ndarray) or not isinstance(pred, np.ndarray):
-        true = np.array([columns[val] for val in true])
-        pred = np.array([columns[val] for val in pred])
-
-    conf = confusion_matrix(true, pred, labels=columns)
-    df_cm = pd.DataFrame(conf, index=columns, columns=columns)
-
-    figure = plt.figure(figsize=(4, 4))
-    heatmap(df_cm, annot=True, cmap="flare", fmt="d")
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-
-    if name:
-        plt.title(name)
-        plt.savefig(f"figures/confusion_matrices/{name}")
-        plt.close()
-    else:
-        plt.show()
-
-def modified_crossentropy_loss(pred, true):
+def modified_crossentropy_loss(pred: [torch.Tensor], true: [torch.Tensor]) -> float:
     log_prob = -1.0 * F.log_softmax(pred, 1)
 
     loss = log_prob.gather(1, true.unsqueeze(1))
-    for i in range(len(log_prob)):
-        true_out = true[i]
-        pred_out = pred[i].tolist().index(max(pred[i]))
-
-        if pred_out != true_out and pred_out == 2:
-            loss[i] *= 2
+    # for i in range(len(log_prob)):
+    #     true_out = true[i]
+    #     pred_out = pred[i].tolist().index(max(pred[i]))
+    #
+    #     if pred_out != true_out and pred_out == 2:
+    #         loss[i] *= 2
 
         # if pred_out == 1:
         #     loss[i] *= .6

@@ -26,9 +26,9 @@ if __name__ == '__main__':
     # out_df, keras_model = keras_train(df)
 
     # visualize_PCA(df, nr_dim=3, frac=.5)
-    visualize_LDA(df, frac=1, standardize=True)
+    # visualize_LDA(df, frac=1, standardize=True)
 
-    # out_df, torch_model = torch_train(df)
+    out_df, torch_model = torch_train(df)
     #
     # out_df.to_csv(f"data/edf_data{trimmed_str}{cleaned_str}{normalized_str}_output.csv")
     print('done!')

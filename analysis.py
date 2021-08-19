@@ -6,7 +6,7 @@ import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from torch_train import draw_conf
+from util import draw_conf
 from mpl_toolkits import mplot3d
 
 
