@@ -5,7 +5,8 @@ import matplotlib
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from torch_train import draw_conf
 from mpl_toolkits import mplot3d
 
 
@@ -28,14 +29,18 @@ def visualize_LDA(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True)
     df = df.sample(frac=frac)
     x, y = feature_split(df, standardize=standardize)
 
-    x_r_lda = LinearDiscriminantAnalysis(n_components=3).fit(x, y).transform(x)
+    lda = LinearDiscriminantAnalysis(n_components=3).fit(x, y)
+    x_r_lda = lda.transform(x)
+
+    out = lda.predict(x)
+    draw_conf(out, y, name=f"LDA_conf_frac={frac:.2f}.png")
 
     ld_df = pd.DataFrame(data=x_r_lda, columns=['LD 1', 'LD 2', 'LD 3'])
 
     fig = px.scatter_3d(x=ld_df['LD 1'].values, y=ld_df['LD 2'].values,
                         z=ld_df['LD 3'].values, color=df['label'].values)
     # fig.show()
-    fig.write_html(f'figures/lda/LDA3D_frac={frac}.html', auto_open=True)
+    fig.write_html(f'figures/lda/LDA3D_frac={frac:.2f}.html', auto_open=True)
 
 
 def visualize_PCA(df: pd.DataFrame, nr_dim: int = 2, frac: float = 1.0, standardize: bool = True):
@@ -64,7 +69,7 @@ def visualize_PCA(df: pd.DataFrame, nr_dim: int = 2, frac: float = 1.0, standard
         ax.scatter(pca_df['PC 1'].values, pca_df['PC 2'].values,
                    c=y, cmap=matplotlib.colors.ListedColormap(colors))
         # plt.show()
-        plt.savefig(f'figures/pca/PCA{nr_dim}D_frac={frac}.png')
+        plt.savefig(f'figures/pca/PCA{nr_dim}D_frac={frac:.2f}.png')
 
     elif nr_dim == 3:
 

@@ -37,11 +37,12 @@ def draw_epoch_loss(loss_arr: list):
     plt.ylabel("Loss")
     plt.show()
 
-def draw_conf(pred, true, name: str = None):
+def draw_conf(pred: [torch.Tensor], true: [torch.Tensor], name: str = None):
     columns = ['awake', 'light', 'deep', 'rem']
 
-    true = np.array([columns[val] for val in true])
-    pred = np.array([columns[val] for val in pred])
+    if not isinstance(true, np.ndarray) or not isinstance(pred, np.ndarray):
+        true = np.array([columns[val] for val in true])
+        pred = np.array([columns[val] for val in pred])
 
     conf = confusion_matrix(true, pred, labels=columns)
     df_cm = pd.DataFrame(conf, index=columns, columns=columns)
