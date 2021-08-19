@@ -12,8 +12,8 @@ from mpl_toolkits import mplot3d
 
 def feature_split(df: pd.DataFrame, standardize: bool = True) -> (np.ndarray, np.ndarray):
 
-    features = ['rr_mean', 'rr_std', 'rs_std', 'rr_range', 'gender',
-                'rr_delta_abs', 'rs_delta_abs', 'rr_disp', 'rr_trend', 'age']
+    features = ['rr_mean', 'rr_std', 'rs_std', 'rr_range', 'rr_delta_abs',
+                'rs_delta_abs', 'rr_disp', 'rr_trend', 'gender', 'age']
 
     x = df.reindex(columns=features).values
     y = df.reindex(columns=['label']).values.flatten()
@@ -24,6 +24,29 @@ def feature_split(df: pd.DataFrame, standardize: bool = True) -> (np.ndarray, np
     return x, y
 
 
+def draw_vars_1D(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True):
+
+    df = df.sample(frac=frac)
+
+    x, y = feature_split(df, standardize=standardize)
+    y = [{'awake': 0, 'light': 1, 'deep': 2, 'rem': 3}[key] for key in y]
+
+    features = ['rr_mean', 'rr_std', 'rs_std', 'rr_range', 'rr_delta_abs',
+                'rs_delta_abs', 'rr_disp', 'rr_trend', 'gender', 'age']
+
+    df = pd.DataFrame(x, columns=features)
+    colors = ['c', 'b', 'm', 'r']
+
+    fig, axs = plt.subplots(len(features))
+    fig.suptitle(f"Features Plotted Using {frac * 100:.1f}% of Data")
+    for i, ax in enumerate(axs):
+        ax.scatter(df[features[i]], np.zeros(df.shape[0]), c=y, cmap=matplotlib.colors.ListedColormap(colors))
+        ax.set_ylabel(features[i], rotation=-35, labelpad=30)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.yaxis.set_label_position("right")
+    plt.show()
+
 def visualize_LDA(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True):
 
     df = df.sample(frac=frac)
@@ -33,6 +56,7 @@ def visualize_LDA(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True)
     x_r_lda = lda.transform(x)
 
     out = lda.predict(x)
+    print(f"LDA accuracy: {lda.score(x,y)*100:.2f}%")
     draw_conf(out, y, name=f"LDA_conf_frac={frac:.2f}.png")
 
     ld_df = pd.DataFrame(data=x_r_lda, columns=['LD 1', 'LD 2', 'LD 3'])
