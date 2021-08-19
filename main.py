@@ -1,6 +1,6 @@
 from load_data import edf_to_csv
 import pandas as pd
-from analysis import visualize_PCA
+from analysis import visualize_PCA, visualize_LDA
 from keras_train import keras_train
 from torch_train import torch_train
 
@@ -25,7 +25,8 @@ if __name__ == '__main__':
 
     # out_df, keras_model = keras_train(df)
 
-    visualize_PCA(df, nr_dim=2, frac=.01)
+    # visualize_PCA(df, nr_dim=3, frac=.5)
+    visualize_LDA(df, frac=.1, standardize=True)
 
     # out_df, torch_model = torch_train(df)
     #

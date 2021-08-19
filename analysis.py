@@ -5,28 +5,51 @@ import matplotlib
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from mpl_toolkits import mplot3d
 
 
-def visualize_PCA(df: pd.DataFrame, nr_dim: int = 2, frac: float = 1.0):
-    # print(df)
-    df = df.sample(frac=frac)
-
-    if nr_dim != 2 and nr_dim != 3:
-        print("choose either nr_dim as 2 or 3")
-        return
+def feature_split(df: pd.DataFrame, standardize: bool = True) -> (np.ndarray, np.ndarray):
 
     features = ['rr_mean', 'rr_std', 'rs_std', 'rr_range', 'gender',
                 'rr_delta_abs', 'rs_delta_abs', 'rr_disp', 'rr_trend', 'age']
 
     x = df.reindex(columns=features).values
-    y = df.reindex(columns=['label']).values
+    y = df.reindex(columns=['label']).values.flatten()
 
-    x = StandardScaler().fit_transform(x)
+    if standardize:
+        x = StandardScaler().fit_transform(x)
+
+    return x, y
+
+
+def visualize_LDA(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True):
+
+    df = df.sample(frac=frac)
+    x, y = feature_split(df, standardize=standardize)
+
+    x_r_lda = LinearDiscriminantAnalysis(n_components=3).fit(x, y).transform(x)
+
+    ld_df = pd.DataFrame(data=x_r_lda, columns=['LD 1', 'LD 2', 'LD 3'])
+
+    fig = px.scatter_3d(x=ld_df['LD 1'].values, y=ld_df['LD 2'].values,
+                        z=ld_df['LD 3'].values, color=df['label'].values)
+    # fig.show()
+    fig.write_html(f'figures/lda/LDA3D_frac={frac}.html', auto_open=True)
+
+
+def visualize_PCA(df: pd.DataFrame, nr_dim: int = 2, frac: float = 1.0, standardize: bool = True):
+
+    if nr_dim != 2 and nr_dim != 3:
+        print("choose either nr_dim as 2 or 3")
+        return
+
+    df = df.sample(frac=frac)
+    x, y = feature_split(df, standardize=standardize)
 
     if nr_dim == 2:
 
-        y = [{'awake': 0, 'light': 1, 'deep': 2, 'rem': 3}[key] for key in y.flatten()]
+        y = [{'awake': 0, 'light': 1, 'deep': 2, 'rem': 3}[key] for key in y]
 
         pca = PCA(n_components=2)
         principal_comps = pca.fit_transform(x)
