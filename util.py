@@ -57,7 +57,7 @@ def parse_df(df: pd.DataFrame, batch_size: int = 10, debug: bool = False) -> \
     else:
         _, test_data = sample(data, .9)
 
-        debug_sample_size = 1000
+        debug_sample_size = 5
         try:
             debug_train_ind = pd.read_csv(f"data/debug/set{debug_sample_size * 4}.csv").values.transpose()[1]
         except FileNotFoundError:
@@ -85,8 +85,8 @@ def parse_df(df: pd.DataFrame, batch_size: int = 10, debug: bool = False) -> \
     test_in = np.concatenate(test_in)
     test_out = np.concatenate(test_out)
 
-    train_out = pd.get_dummies(train_out)
-    test_out = pd.get_dummies(test_out)
+    train_out = pd.get_dummies(train_out)[['awake', 'light', 'deep', 'rem']]
+    test_out = pd.get_dummies(test_out)[['awake', 'light', 'deep', 'rem']]
 
     train_in = np.asarray(train_in).astype(np.float32)
     test_in = np.asarray(test_in).astype(np.float32)

@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
+from math import exp
 from torch_model import SimpleFF
 
 from matplotlib import pyplot as plt
@@ -59,7 +60,18 @@ def draw_conf(pred, true, name: str = None):
 
 def modified_crossentropy_loss(pred, true):
     log_prob = -1.0 * F.log_softmax(pred, 1)
+
     loss = log_prob.gather(1, true.unsqueeze(1))
+    for i in range(len(log_prob)):
+        true_out = true[i]
+        pred_out = pred[i].tolist().index(max(pred[i]))
+
+        if pred_out != true_out and pred_out == 2:
+            loss[i] *= 2
+
+        # if pred_out == 1:
+        #     loss[i] *= .6
+
     loss = loss.mean()
     return loss
 
@@ -69,10 +81,10 @@ def torch_train(df: pd.DataFrame):
     predicting = True
     debug = False
 
-    epochs = 8
-    learning_rate = .009
+    epochs = 1
+    learning_rate = .007
     # batches_per_epoch = 4616
-    batches_per_epoch = 2400
+    batches_per_epoch = 2000
     input_len = 1
     nr_params = 12
 
@@ -82,7 +94,8 @@ def torch_train(df: pd.DataFrame):
         batch_size = 10
 
     # specify columns to drop from dataframe for training
-    to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
+    # to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
+    to_del = ['Unnamed: 0', 'age']
     df = df.drop(to_del, axis=1)
     nr_params -= len(to_del)
 
@@ -112,7 +125,7 @@ def torch_train(df: pd.DataFrame):
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
 
-        if epoch % 100 == 0:
+        if epoch % 5 == 0:
             optimizer.param_groups[0]['lr'] *= .9
 
         batch_acc_list = []
@@ -127,6 +140,9 @@ def torch_train(df: pd.DataFrame):
         for i, (inputs, labels) in enumerate(train_load):
 
             outputs = model(inputs)
+            # outputs[:, 1] += .05
+            # outputs = torch.Tensor([[elt / np.sum(probs.tolist()) for elt in probs] for probs in outputs], requires_grad=True)
+
             labels = torch.max(labels, 1)[1]
             loss = modified_crossentropy_loss(outputs, labels)
             loss_list.append(loss.item())
