@@ -30,12 +30,16 @@ def draw_vars_1D(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True):
 
     x, y = feature_split(df, standardize=standardize)
     y = [{'awake': 0, 'light': 1, 'deep': 2, 'rem': 3}[key] for key in y]
+    # y = [{'awake': 0, 'nrem1': 1, 'nrem2': 2, 'nrem3': 3, 'rem': 4}[key] for key in y]
+
+
 
     features = ['rr_mean', 'rr_std', 'rs_std', 'rr_range', 'rr_delta_abs',
                 'rs_delta_abs', 'rr_disp', 'rr_trend', 'gender', 'age']
 
     df = pd.DataFrame(x, columns=features)
     colors = ['c', 'b', 'm', 'r']
+    # colors = ['c', 'b', 'm', 'r', 'y']
 
     fig, axs = plt.subplots(len(features))
     fig.suptitle(f"Features Plotted Using {frac * 100:.1f}% of Data")

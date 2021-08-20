@@ -77,6 +77,17 @@ class DaySleep:
         'Sleep stage R': 'rem',
     }
 
+    # stage_labels = {
+    #     'Sleep stage W': 'awake',
+    #     'Movement time': 'awake',
+    #     'Sleep stage ?': 'awake',
+    #     'Sleep stage 1': 'nrem1',
+    #     'Sleep stage 2': 'nrem2',
+    #     'Sleep stage 3': 'nrem3',
+    #     'Sleep stage 4': 'nrem3',
+    #     'Sleep stage R': 'rem',
+    # }
+
     def __init__(self, age: int = None, gender: int = None, data: np.ndarray = None,
                  labels: [float, bytes, str] = None):
         self.age = age

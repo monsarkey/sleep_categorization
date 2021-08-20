@@ -167,6 +167,9 @@ class TrainingData:
             light = np.where(labels == 'light')[0]
             deep = np.where(labels == 'deep')[0]
             rem = np.where(labels == 'rem')[0]
+            # light = np.where(labels == 'nrem1')[0]
+            # deep = np.where(labels == 'nrem3')[0]
+            # rem = np.where(labels == 'rem')[0]
 
             # choose the intervals between our first and last asleep labels
             try:
