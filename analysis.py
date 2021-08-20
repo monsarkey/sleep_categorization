@@ -45,7 +45,9 @@ def draw_vars_1D(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True):
         ax.set_xticks([])
         ax.set_yticks([])
         ax.yaxis.set_label_position("right")
-    plt.show()
+    # plt.show()
+    plt.savefig(f"figures/vars_1D/vars_1D_frac={frac:.3f}.png")
+    plt.close()
 
 def visualize_LDA(df: pd.DataFrame, frac: float = 1.0, standardize: bool = True):
 

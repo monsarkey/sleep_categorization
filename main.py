@@ -27,7 +27,9 @@ if __name__ == '__main__':
 
     # visualize_PCA(df, nr_dim=3, frac=.5)
     # visualize_LDA(df, frac=1, standardize=False)
-    draw_vars_1D(df, frac=.01, standardize=False)
+    # for i in range(10, 1000, 10):
+    #     draw_vars_1D(df, frac=(i / 1000), standardize=False)
+    draw_vars_1D(df, frac=.0025, standardize=False)
 
     # out_df, torch_model = torch_train(df)
     #
