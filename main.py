@@ -26,12 +26,12 @@ if __name__ == '__main__':
     # out_df, keras_model = keras_train(df)
 
     # visualize_PCA(df, nr_dim=3, frac=.5)
-    visualize_LDA(df, frac=.05, standardize=False)
+    # visualize_LDA(df, frac=.05, standardize=False)
     # for i in range(10, 1000, 10):
     #     draw_vars_1D(df, frac=(i / 1000), standardize=False)
     # draw_vars_1D(df, frac=.005, standardize=False)
 
-    # out_df, torch_model = torch_train(df)
+    out_df, torch_model = torch_train(df)
     #
     # out_df.to_csv(f"data/edf_data{trimmed_str}{cleaned_str}{normalized_str}_output.csv")
     print('done!')

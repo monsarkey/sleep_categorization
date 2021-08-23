@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 from math import exp
-from torch_model import SimpleFF
+from torch_model import SimpleFF, LSTM
 
 from matplotlib import pyplot as plt
 from seaborn import heatmap
@@ -61,17 +61,21 @@ def torch_train(df: pd.DataFrame):
     predicting = True
     debug = False
 
-    epochs = 1
+    epochs = 20
     learning_rate = .007
     # batches_per_epoch = 4616
-    batches_per_epoch = 2000
-    input_len = 1
+    batches_per_epoch = 4000
+    seq_len = 100
+    # seq_len = 40
+    # input_len = 1
     nr_params = 12
 
     if not debug:
         batch_size = (len(df) // batches_per_epoch)
     else:
         batch_size = 10
+
+    # batch_size = 1
 
     # specify columns to drop from dataframe for training
     # to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
@@ -81,17 +85,31 @@ def torch_train(df: pd.DataFrame):
 
     data, train_in, train_out, test_in, test_out = parse_df(df, batch_size, debug=debug)
 
-    model = SimpleFF((nr_params,))
-    train_in = train_in.reshape(train_in.shape[0] // input_len, nr_params)
-    train_out = np.asarray(train_out).reshape(train_out.shape[0] // input_len, 4)
+    # model = SimpleFF((nr_params,))
+    # train_in = train_in.reshape(train_in.shape[0] // input_len, nr_params)
+    # train_out = np.asarray(train_out).reshape(train_out.shape[0] // input_len, 4)
+    #
+    # test_in = test_in.reshape(test_in.shape[0] // input_len, nr_params)
+    # test_out = np.asarray(test_out).reshape(test_out.shape[0] // input_len, 4)
 
-    test_in = test_in.reshape(test_in.shape[0] // input_len, nr_params)
-    test_out = np.asarray(test_out).reshape(test_out.shape[0] // input_len, 4)
+    train_in = train_in[0:train_in.shape[0] - (train_in.shape[0] % seq_len)]
+    train_out = train_out[0:train_out.shape[0] - (train_out.shape[0] % seq_len)]
+
+    train_in = train_in.reshape(train_in.shape[0] // seq_len, seq_len, nr_params)
+    train_out = np.asarray(train_out).reshape(train_out.shape[0] // seq_len, seq_len, 4)
+
+    test_in = test_in[0:test_in.shape[0]-(test_in.shape[0] % seq_len)]
+    test_out = test_out[0:test_out.shape[0]-(test_out.shape[0] % seq_len)]
+
+    test_in = test_in.reshape(test_in.shape[0] // seq_len, seq_len, nr_params)
+    test_out = np.asarray(test_out).reshape(test_out.shape[0] // seq_len, seq_len, 4)
 
     train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
     train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_data = torch.utils.data.TensorDataset(torch.tensor(test_in), torch.tensor(test_out))
     test_load = torch.utils.data.DataLoader(test_data, batch_size=4)
+
+    model = LSTM(input_size=nr_params, seq_length=seq_len, num_layers=1, batch_size=batch_size)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -101,6 +119,9 @@ def torch_train(df: pd.DataFrame):
     epoch_acc_list = []
     epoch_val_acc_list = []
     epoch_loss_list = []
+
+    model.print()
+    print(f"Training LSTM with sequence length = {seq_len}")
 
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
@@ -123,8 +144,10 @@ def torch_train(df: pd.DataFrame):
             # outputs[:, 1] += .05
             # outputs = torch.Tensor([[elt / np.sum(probs.tolist()) for elt in probs] for probs in outputs], requires_grad=True)
 
-            labels = torch.max(labels, 1)[1]
-            loss = modified_crossentropy_loss(outputs, labels)
+            # labels = torch.max(labels, 1)[1]
+            labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
+            # loss = modified_crossentropy_loss(outputs, labels)
+            loss = criterion(outputs, labels)
             loss_list.append(loss.item())
 
             optimizer.zero_grad()
@@ -156,7 +179,8 @@ def torch_train(df: pd.DataFrame):
         for i, (inputs, labels) in enumerate(test_load):
 
             outputs = model(inputs)
-            labels = torch.max(labels, 1)[1]
+            # labels = torch.max(labels, 1)[1]
+            labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
 
             total = labels.size(0)
             _, predicted = torch.max(outputs.data, 1)
@@ -185,7 +209,8 @@ def torch_train(df: pd.DataFrame):
         pred = []
         for inputs, labels in test_load:
             outputs = model(inputs)
-            labels = torch.max(labels, 1)[1]
+            # labels = torch.max(labels, 1)[1]
+            labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
 

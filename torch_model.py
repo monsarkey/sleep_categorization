@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+from torchinfo import summary
 
 
 class SimpleFF(nn.Module):
@@ -31,37 +32,53 @@ class SimpleFF(nn.Module):
 
 class LSTM(nn.Module):
 
-    def __init__(self, input_shape: tuple,
+    def __init__(self, input_size: int,
                  output_size: int = 4,
                  hidden_dim: int = 40,
                  num_layers: int = 1,
-                 drop_prob: float = .25):
+                 batch_size: int = 20,
+                 seq_length: int = 20,
+                 drop_prob: float = None):
 
-        super(LSTM. self).__init__()
+        super(LSTM, self).__init__()
+        self.input_size = input_size
         self.output_size = output_size
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
+        self.seq_length = seq_length
+        self.drop_prob = drop_prob
+        self.batch_size = batch_size
 
-        self.lstm = nn.LSTM(input_shape[2], hidden_dim, num_layers, dropout=drop_prob, batch_first=True)
-        self.dropout = nn.Dropout(drop_prob)
+        if drop_prob:
+            self.lstm = nn.LSTM(input_size, hidden_dim, num_layers, dropout=drop_prob, batch_first=True)
+            self.dropout = nn.Dropout(drop_prob)
+        else:
+            self.lstm = nn.LSTM(input_size, hidden_dim, num_layers, batch_first=True)
+
         self.fc1 = nn.Linear(hidden_dim, hidden_dim // 2)
         self.fc2 = nn.Linear(hidden_dim // 2, output_size)
 
-        self.relu = nn.reLU()
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_dim))
         c_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_dim))
 
         output, (hn, cn) = self.lstm(x, (h_0, c_0))  # lstm with input, hidden, and internal state
-        hn = hn.view(-1, self.hidden_size)
-        out = self.dropout(hn)
-        out = self.relu(out)
+        out = hn.view(-1, self.hidden_dim)
+
+        if self.drop_prob:
+            out = self.dropout(out)
+            out = self.relu(out)
 
         out = self.fc1(out)
         out = self.relu(out)
 
         out = self.fc2(out)
-        out = self.relu(out)
+
+        out = F.softmax(out, dim=1)
 
         return out
+
+    def print(self):
+        summary(self, input_size=(self.batch_size, self.seq_length, self.input_size))
