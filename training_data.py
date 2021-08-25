@@ -233,6 +233,7 @@ class TrainingData:
                 "rr_trend": normalize(self.rr_trend),
                 "gender": self.gender,
                 "age": np.array([interval.age for interval in self.intervals]),
+                "day_num": TrainingData.count,
                 "label": self.labels,
             }
         else:
@@ -248,6 +249,7 @@ class TrainingData:
                 "rr_trend": self.rr_trend,
                 "gender": self.gender,
                 "age": np.array([interval.age for interval in self.intervals]),
+                "day_num": TrainingData.count,
                 "label": self.labels,
             }
 

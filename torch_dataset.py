@@ -9,11 +9,34 @@ class SlidingWindowDataset(Dataset):
         self.label_arr = label_arr
         self.window_size = window_size
         self.transform = transform
+        self._mask = self._mark_windows()
+
+    def _mark_windows(self):
+
+        mask_arr = np.ones(len(self.input_arr))
+
+        for index, inputs in enumerate(self.input_arr):
+            window = self.input_arr[max((index - self.window_size), 0):index].tolist()
+
+            if len(window) < self.window_size:
+                mask_arr[index] = 0
+            elif len(set([elt[-1] for elt in window])) > 1:
+                mask_arr[index] = 0
+
+        # remove the final day_num variable in the input array after use
+        self.input_arr = self.input_arr[:, :-1]
+
+        # drop indices identified earlier in mask
+        self.input_arr = self.input_arr[mask_arr == 1]
+        self.label_arr = self.label_arr[mask_arr == 1]
+
+        return mask_arr
 
     def __len__(self):
         return len(self.label_arr)
 
     def __getitem__(self, index) -> tuple:
+
         label = self.label_arr[index]
         inputs = self.input_arr[max((index - self.window_size), 0):index]
 

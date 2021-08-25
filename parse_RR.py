@@ -88,8 +88,9 @@ class DaySleep:
     #     'Sleep stage R': 'rem',
     # }
 
-    def __init__(self, age: int = None, gender: int = None, data: np.ndarray = None,
+    def __init__(self, day_num: int = 0, age: int = None, gender: int = None, data: np.ndarray = None,
                  labels: [float, bytes, str] = None):
+        self.day_num = day_num
         self.age = age
         self.gender = gender
         self.data = data

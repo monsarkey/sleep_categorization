@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from math import exp
 from torch_model import SimpleFF, LSTM
+from torch_dataset import SlidingWindowDataset
 
 from matplotlib import pyplot as plt
 from seaborn import heatmap
@@ -68,7 +69,7 @@ def torch_train(df: pd.DataFrame):
     seq_len = 100
     # seq_len = 40
     # input_len = 1
-    nr_params = 12
+    nr_params = len(df.columns) - 1
 
     if not debug:
         batch_size = (len(df) // batches_per_epoch)
@@ -92,19 +93,20 @@ def torch_train(df: pd.DataFrame):
     # test_in = test_in.reshape(test_in.shape[0] // input_len, nr_params)
     # test_out = np.asarray(test_out).reshape(test_out.shape[0] // input_len, 4)
 
-    train_in = train_in[0:train_in.shape[0] - (train_in.shape[0] % seq_len)]
-    train_out = train_out[0:train_out.shape[0] - (train_out.shape[0] % seq_len)]
+    # train_in = train_in[0:train_in.shape[0] - (train_in.shape[0] % seq_len)]
+    # train_out = train_out[0:train_out.shape[0] - (train_out.shape[0] % seq_len)]
+    #
+    # train_in = train_in.reshape(train_in.shape[0] // seq_len, seq_len, nr_params)
+    train_out = np.asarray(train_out).reshape(train_out.shape[0], 4)
+    #
+    # test_in = test_in[0:test_in.shape[0]-(test_in.shape[0] % seq_len)]
+    # test_out = test_out[0:test_out.shape[0]-(test_out.shape[0] % seq_len)]
+    #
+    # test_in = test_in.reshape(test_in.shape[0] // seq_len, seq_len, nr_params)
+    # test_out = np.asarray(test_out).reshape(test_out.shape[0] // seq_len, seq_len, 4)
 
-    train_in = train_in.reshape(train_in.shape[0] // seq_len, seq_len, nr_params)
-    train_out = np.asarray(train_out).reshape(train_out.shape[0] // seq_len, seq_len, 4)
-
-    test_in = test_in[0:test_in.shape[0]-(test_in.shape[0] % seq_len)]
-    test_out = test_out[0:test_out.shape[0]-(test_out.shape[0] % seq_len)]
-
-    test_in = test_in.reshape(test_in.shape[0] // seq_len, seq_len, nr_params)
-    test_out = np.asarray(test_out).reshape(test_out.shape[0] // seq_len, seq_len, 4)
-
-    train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
+    train_data = SlidingWindowDataset(train_in, train_out, window_size=5)
+    # train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
     train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_data = torch.utils.data.TensorDataset(torch.tensor(test_in), torch.tensor(test_out))
     test_load = torch.utils.data.DataLoader(test_data, batch_size=4)
