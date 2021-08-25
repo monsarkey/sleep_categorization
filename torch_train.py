@@ -62,12 +62,12 @@ def torch_train(df: pd.DataFrame):
     predicting = True
     debug = False
 
-    epochs = 20
-    learning_rate = .007
+    epochs = 30
+    learning_rate = .0007
     # batches_per_epoch = 4616
     batches_per_epoch = 4000
     seq_len = 100
-    window_size = 5
+    window_size = 15
     # seq_len = 40
     # input_len = 1
     nr_params = len(df.columns) - 1
@@ -104,7 +104,7 @@ def torch_train(df: pd.DataFrame):
     # test_out = test_out[0:test_out.shape[0]-(test_out.shape[0] % seq_len)]
     #
     # test_in = test_in.reshape(test_in.shape[0] // seq_len, seq_len, nr_params)
-    # test_out = np.asarray(test_out).reshape(test_out.shape[0] // seq_len, seq_len, 4)
+    test_out = np.asarray(test_out).reshape(test_out.shape[0], 4)
 
     train_data = SlidingWindowDataset(train_in, train_out, window_size=window_size)
     # train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
@@ -127,12 +127,12 @@ def torch_train(df: pd.DataFrame):
     epoch_loss_list = []
 
     model.print()
-    print(f"Training LSTM with sequence length = {seq_len}")
+    print(f"Training LSTM with sequence length = {window_size}")
 
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
 
-        if epoch % 5 == 0:
+        if epoch % 8 == 0:
             optimizer.param_groups[0]['lr'] *= .9
 
         batch_acc_list = []
@@ -185,8 +185,8 @@ def torch_train(df: pd.DataFrame):
         for i, (inputs, labels) in enumerate(test_load):
 
             outputs = model(inputs)
-            # labels = torch.max(labels, 1)[1]
-            labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
+            labels = torch.max(labels, 1)[1]
+            # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
 
             total = labels.size(0)
             _, predicted = torch.max(outputs.data, 1)
@@ -215,8 +215,8 @@ def torch_train(df: pd.DataFrame):
         pred = []
         for inputs, labels in test_load:
             outputs = model(inputs)
-            # labels = torch.max(labels, 1)[1]
-            labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
+            labels = torch.max(labels, 1)[1]
+            # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
 

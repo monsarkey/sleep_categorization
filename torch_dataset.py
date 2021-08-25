@@ -39,7 +39,7 @@ class SlidingWindowDataset(Dataset):
 
         index_map = self._valid_indices[index]
 
-        label = self.label_arr[index_map]
+        label = self.label_arr[index_map-1]
         inputs = self.input_arr[max((index_map - self.window_size), 0):index_map]
 
         return inputs, label

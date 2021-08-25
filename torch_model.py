@@ -61,8 +61,8 @@ class LSTM(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_dim))
-        c_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_dim))
+        h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim)
+        c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim)
 
         output, (hn, cn) = self.lstm(x, (h_0, c_0))  # lstm with input, hidden, and internal state
         out = hn.view(-1, self.hidden_dim)
