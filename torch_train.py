@@ -67,6 +67,7 @@ def torch_train(df: pd.DataFrame):
     # batches_per_epoch = 4616
     batches_per_epoch = 4000
     seq_len = 100
+    window_size = 5
     # seq_len = 40
     # input_len = 1
     nr_params = len(df.columns) - 1
@@ -105,13 +106,16 @@ def torch_train(df: pd.DataFrame):
     # test_in = test_in.reshape(test_in.shape[0] // seq_len, seq_len, nr_params)
     # test_out = np.asarray(test_out).reshape(test_out.shape[0] // seq_len, seq_len, 4)
 
-    train_data = SlidingWindowDataset(train_in, train_out, window_size=5)
+    train_data = SlidingWindowDataset(train_in, train_out, window_size=window_size)
     # train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
-    train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    test_data = torch.utils.data.TensorDataset(torch.tensor(test_in), torch.tensor(test_out))
+    train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False)
+    # test_data = torch.utils.data.TensorDataset(torch.tensor(test_in), torch.tensor(test_out))
+    test_data = SlidingWindowDataset(test_in, test_out, window_size=window_size)
     test_load = torch.utils.data.DataLoader(test_data, batch_size=4)
 
-    model = LSTM(input_size=nr_params, seq_length=seq_len, num_layers=1, batch_size=batch_size)
+    nr_params -= 1
+
+    model = LSTM(input_size=nr_params, seq_length=window_size, num_layers=1, batch_size=batch_size)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -146,8 +150,8 @@ def torch_train(df: pd.DataFrame):
             # outputs[:, 1] += .05
             # outputs = torch.Tensor([[elt / np.sum(probs.tolist()) for elt in probs] for probs in outputs], requires_grad=True)
 
-            # labels = torch.max(labels, 1)[1]
-            labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
+            labels = torch.max(labels, 1)[1]
+            # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
             # loss = modified_crossentropy_loss(outputs, labels)
             loss = criterion(outputs, labels)
             loss_list.append(loss.item())

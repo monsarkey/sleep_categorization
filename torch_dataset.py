@@ -9,7 +9,7 @@ class SlidingWindowDataset(Dataset):
         self.label_arr = label_arr
         self.window_size = window_size
         self.transform = transform
-        self._mask = self._mark_windows()
+        self._mask, self._valid_indices = self._mark_windows()
 
     def _mark_windows(self):
 
@@ -27,17 +27,19 @@ class SlidingWindowDataset(Dataset):
         self.input_arr = self.input_arr[:, :-1]
 
         # drop indices identified earlier in mask
-        self.input_arr = self.input_arr[mask_arr == 1]
-        self.label_arr = self.label_arr[mask_arr == 1]
+        # self.input_arr = self.input_arr[mask_arr == 1]
+        # self.label_arr = self.label_arr[mask_arr == 1]
 
-        return mask_arr
+        return mask_arr, np.nonzero(mask_arr)[0]
 
     def __len__(self):
-        return len(self.label_arr)
+        return len(self._valid_indices)
 
     def __getitem__(self, index) -> tuple:
 
-        label = self.label_arr[index]
-        inputs = self.input_arr[max((index - self.window_size), 0):index]
+        index_map = self._valid_indices[index]
+
+        label = self.label_arr[index_map]
+        inputs = self.input_arr[max((index_map - self.window_size), 0):index_map]
 
         return inputs, label
