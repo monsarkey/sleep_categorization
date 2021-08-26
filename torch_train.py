@@ -15,13 +15,6 @@ from sklearn.metrics import confusion_matrix
 from util import parse_df, draw_conf
 
 
-# def draw_acc(acc_arr: list, val_acc: float = None):
-#     xs = np.arange(len(acc_arr))
-#     plt.plot(xs, acc_arr)
-#     if val_acc:
-#         plt.axhline(y=val_acc, color='r')
-#     plt.show()
-
 def draw_epoch_acc(acc_arr: list, val_acc_arr: list):
     xs = np.arange(len(acc_arr))
     plt.plot(xs, acc_arr)
@@ -51,9 +44,6 @@ def modified_crossentropy_loss(pred: [torch.Tensor], true: [torch.Tensor]) -> fl
         if pred_out != true_out and pred_out == 1:
             loss[i] *= 1.5
 
-        # if pred_out != true_out and pred_out == 0:
-        #     loss[i] *= 1.5
-
         if pred_out == 2 or pred_out == 3:
             loss[i] *= .8
 
@@ -66,7 +56,7 @@ def torch_train(df: pd.DataFrame):
     predicting = True
     debug = False
 
-    epochs = 15
+    epochs = 1
     learning_rate = .0001
     lr_step_size = 4
     lr_gamma = .5
@@ -83,7 +73,7 @@ def torch_train(df: pd.DataFrame):
 
     # specify columns to drop from dataframe for training
     # to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
-    to_del = ['Unnamed: 0', 'age']
+    to_del = ['Unnamed: 0', 'age', 'rr_std', 'rs_std', 'rr_disp']
     df = df.drop(to_del, axis=1)
     nr_params -= len(to_del)
 
@@ -119,6 +109,7 @@ def torch_train(df: pd.DataFrame):
 
     model = LSTM(input_size=nr_params, seq_length=window_size, num_layers=1, batch_size=batch_size, drop_prob=.3)
 
+    # criterion = nn.CrossEntropyLoss(weight=torch.Tensor([2, 1.5, 5, 2]))
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma, verbose=True)
@@ -155,8 +146,8 @@ def torch_train(df: pd.DataFrame):
 
             labels = torch.max(labels, 1)[1]
             # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
-            loss = modified_crossentropy_loss(outputs, labels)
-            # loss = criterion(outputs, labels)
+            # loss = modified_crossentropy_loss(outputs, labels)
+            loss = criterion(outputs, labels)
             loss_list.append(loss.item())
 
             optimizer.zero_grad()
@@ -180,7 +171,7 @@ def torch_train(df: pd.DataFrame):
 
         epoch_loss = np.average(loss_list)
         epoch_loss_list.append(epoch_loss)
-        draw_conf(train_preds, train_labels, name=f"/training/conf_epoch{epoch + 1}_train")
+        draw_conf(train_preds, train_labels, name=f"training/conf_epoch{epoch + 1}_train")
 
         print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {epoch_acc * 100:.2f}%")
         print(f"Avg. Loss in Training Epoch #{epoch + 1}: {epoch_loss:.4f}")
@@ -204,7 +195,7 @@ def torch_train(df: pd.DataFrame):
             val_batch_acc_list.append(correct / total)
 
         epoch_val_acc_list.append(np.average(val_batch_acc_list))
-        draw_conf(val_preds, val_labels, name=f"/validation/conf_epoch{epoch + 1}_validation")
+        draw_conf(val_preds, val_labels, name=f"validation/conf_epoch{epoch + 1}_validation")
         print(f"Epoch #{epoch + 1} Validation Accuracy: {(np.average(val_batch_acc_list) * 100):.2f}%")
 
         scheduler.step()
@@ -237,7 +228,7 @@ def torch_train(df: pd.DataFrame):
 
     val_acc = correct / total
 
-    print(f"Validation accuracy: {val_acc * 100:.2f}%")
+    print(f"Validation Accuracy: {val_acc * 100:.2f}%")
     # draw_acc(epoch_acc_list, val_acc)
     draw_conf(pred, true, name="conf_final_validation")
 

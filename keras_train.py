@@ -13,7 +13,7 @@ def keras_train(df: pd.DataFrame):
     epochs = 14
     batches_per_epoch = 4616
     input_len = 1
-    nr_params = 12
+    nr_params = len(df.columns) - 1
 
     batch_size = (len(df) // batches_per_epoch)
 
