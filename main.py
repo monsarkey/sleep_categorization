@@ -10,7 +10,7 @@ trimmed_str = "_trimmed" if trimmed else ""
 cleaned = True
 cleaned_str = "_cleaned" if cleaned else ""
 
-normalized = False
+normalized = True
 normalized_str = "_normalized" if normalized else ""
 
 

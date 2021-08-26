@@ -7,6 +7,7 @@ import numpy as np
 from math import exp
 from torch_model import SimpleFF, LSTM
 from torch_dataset import SlidingWindowDataset
+from torch.optim.lr_scheduler import  StepLR
 
 from matplotlib import pyplot as plt
 from seaborn import heatmap
@@ -43,15 +44,18 @@ def modified_crossentropy_loss(pred: [torch.Tensor], true: [torch.Tensor]) -> fl
     log_prob = -1.0 * F.log_softmax(pred, 1)
 
     loss = log_prob.gather(1, true.unsqueeze(1))
-    # for i in range(len(log_prob)):
-    #     true_out = true[i]
-    #     pred_out = pred[i].tolist().index(max(pred[i]))
-    #
-    #     if pred_out != true_out and pred_out == 2:
-    #         loss[i] *= 2
+    for i in range(len(log_prob)):
+        true_out = true[i]
+        pred_out = pred[i].tolist().index(max(pred[i]))
 
-        # if pred_out == 1:
-        #     loss[i] *= .6
+        if pred_out != true_out and pred_out == 1:
+            loss[i] *= 1.5
+
+        # if pred_out != true_out and pred_out == 0:
+        #     loss[i] *= 1.5
+
+        if pred_out == 2 or pred_out == 3:
+            loss[i] *= .8
 
     loss = loss.mean()
     return loss
@@ -62,14 +66,12 @@ def torch_train(df: pd.DataFrame):
     predicting = True
     debug = False
 
-    epochs = 30
-    learning_rate = .0007
-    # batches_per_epoch = 4616
+    epochs = 15
+    learning_rate = .0001
+    lr_step_size = 4
+    lr_gamma = .5
     batches_per_epoch = 4000
-    seq_len = 100
-    window_size = 15
-    # seq_len = 40
-    # input_len = 1
+    window_size = 10
     nr_params = len(df.columns) - 1
 
     if not debug:
@@ -108,17 +110,18 @@ def torch_train(df: pd.DataFrame):
 
     train_data = SlidingWindowDataset(train_in, train_out, window_size=window_size)
     # train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
-    train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False)
+    train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     # test_data = torch.utils.data.TensorDataset(torch.tensor(test_in), torch.tensor(test_out))
     test_data = SlidingWindowDataset(test_in, test_out, window_size=window_size)
     test_load = torch.utils.data.DataLoader(test_data, batch_size=4)
 
     nr_params -= 1
 
-    model = LSTM(input_size=nr_params, seq_length=window_size, num_layers=1, batch_size=batch_size)
+    model = LSTM(input_size=nr_params, seq_length=window_size, num_layers=1, batch_size=batch_size, drop_prob=.3)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma, verbose=True)
 
     total_step = len(train_load)
 
@@ -132,8 +135,8 @@ def torch_train(df: pd.DataFrame):
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
 
-        if epoch % 8 == 0:
-            optimizer.param_groups[0]['lr'] *= .9
+        # if epoch % 8 == 0:
+        #     optimizer.param_groups[0]['lr'] *= .9
 
         batch_acc_list = []
         val_batch_acc_list = []
@@ -152,8 +155,8 @@ def torch_train(df: pd.DataFrame):
 
             labels = torch.max(labels, 1)[1]
             # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
-            # loss = modified_crossentropy_loss(outputs, labels)
-            loss = criterion(outputs, labels)
+            loss = modified_crossentropy_loss(outputs, labels)
+            # loss = criterion(outputs, labels)
             loss_list.append(loss.item())
 
             optimizer.zero_grad()
@@ -189,6 +192,10 @@ def torch_train(df: pd.DataFrame):
             # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
 
             total = labels.size(0)
+            # outputs[:, 1] -= .5
+            # outputs[:, 0] -= .3
+            # outputs[:, 3] += .3
+            # outputs[:, 2] += .4
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
 
@@ -199,6 +206,8 @@ def torch_train(df: pd.DataFrame):
         epoch_val_acc_list.append(np.average(val_batch_acc_list))
         draw_conf(val_preds, val_labels, name=f"/validation/conf_epoch{epoch + 1}_validation")
         print(f"Epoch #{epoch + 1} Validation Accuracy: {(np.average(val_batch_acc_list) * 100):.2f}%")
+
+        scheduler.step()
 
 
         # draw_acc(batch_acc_list)
