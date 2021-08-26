@@ -30,11 +30,6 @@ class SimpleFF(nn.Module):
         return output
 
 
-# class 1DCNN(nn.Module):
-#
-#     def __init__(self):
-
-
 class LSTM(nn.Module):
 
     def __init__(self, input_size: int,

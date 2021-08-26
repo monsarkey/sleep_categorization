@@ -7,13 +7,23 @@ import matplotlib.pyplot as plt
 from seaborn import heatmap
 from sklearn.metrics import confusion_matrix
 
+"""
+Author: Sean Markey (00smarkey@gmail.com)
+
+Created: July 19th, 2021
+
+This file contains assorted utility functions used throughout the rest of the project. 
+"""
+
+# standardizes a numpy array, returning the array itself if it is empty or if its standard deviation is zero
 def standardize(arr: np.ndarray):
     if len(arr) > 0 and (std := np.std(arr)) != 0:
         return (arr - np.mean(arr)) / std
     else:
         return arr
 
-
+# normalizes a numpy array, returning an array filled with .5 if the range of the array is zero, and the array itself
+# if it is empty
 def normalize(arr: np.ndarray):
     if (length := len(arr)) > 0 and (ptp := np.ptp(arr)) != 0:
         return (arr - np.min(arr)) / ptp
@@ -23,7 +33,7 @@ def normalize(arr: np.ndarray):
     else:
         return arr
 
-
+# takes in a list of numpy arrays, and samples a fraction of them for testing, keeping the rest for training
 def sample(lst: [np.ndarray], frac: float = 0.8) -> (list, list):
     indices = [elt[0] for elt in random.sample(list(enumerate(lst)), int(frac * len(lst)))]
 
@@ -36,7 +46,7 @@ def sample(lst: [np.ndarray], frac: float = 0.8) -> (list, list):
 
     return train, test
 
-
+# splits a dataframe into batches according to batch_size
 def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
     batches = []
     num_batches = (len(df) // batch_size)
@@ -49,13 +59,15 @@ def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
 def split(elt):
     return elt[:, :-1], elt[:, -1]
 
-
+# takes in a dataframe, which it then splits into numpy arrays for machine learning. This includes arrays for
+# input and output of training and testing data.
 def parse_df(df: pd.DataFrame, batch_size: int = 10, debug: bool = False) -> \
         ([np.ndarray], np.ndarray, np.ndarray, np.ndarray, np.ndarray):
 
     batches = split_dataframe(df, batch_size=batch_size)
     data = [batch.values for batch in batches]
 
+    # if we are debugging, we will sample an equal amount of points from every label category
     if not debug:
         train_data, test_data = sample(data, .9)
     else:
@@ -97,7 +109,7 @@ def parse_df(df: pd.DataFrame, batch_size: int = 10, debug: bool = False) -> \
 
     return data, train_in, train_out, test_in, test_out
 
-
+# draw a confusion matrix according to a provided list of predicted values and ground truth values
 def draw_conf(pred: [torch.Tensor], true: [torch.Tensor], name: str = None):
     columns = ['awake', 'light', 'deep', 'rem']
 
@@ -113,6 +125,7 @@ def draw_conf(pred: [torch.Tensor], true: [torch.Tensor], name: str = None):
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
 
+    # if we have a name for this matrix, then save it. Else just draw it.
     if name:
         plt.title(name)
         plt.savefig(f"figures/confusion_matrices/{name}")

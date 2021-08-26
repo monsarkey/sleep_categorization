@@ -1,9 +1,19 @@
 import numpy as np
 import pandas as pd
+
 from matplotlib import pyplot as plt
 from scipy.stats import median_absolute_deviation
 from util import normalize
 
+
+"""
+Author: Sean Markey (00smarkey@gmail.com)
+
+Created: July 16th, 2021
+
+This file contains the class definitions for TrainingInterval and TrainingData, which are used for manual feature
+extraction of respiratory rate data, which is then exported to dataframe for future use.
+"""
 
 # TODO: Write this class :)
 class TrainingInterval:
@@ -35,7 +45,6 @@ class TrainingInterval:
         self.std_RR = np.sqrt(self.var_RR)
         self.std_RS = np.sqrt(self.var_RS)
 
-        # self.var_coeff_RR =  10 * (1 + (1 / (4 * len(self._resp_rates) + 1))) * (self.std_RR / self.mean_RR)
         self.mad_RR = median_absolute_deviation(self._resp_rates)
 
         if self.mean_RR != 0:
@@ -64,39 +73,6 @@ class TrainingInterval:
 
         self.delta_abs_RR = np.abs(self.delta_RR)
         self.delta_abs_RS = np.abs(self.delta_RS)
-
-    # def export_stats(self, normalized: bool = False) -> dict:
-    #     # TODO: add new variables to export
-    #     if normalized:
-    #         return {
-    #             "rr_mean": normalize(self.mean_RR),
-    #             "rs_mean": normalize(self.mean_RS),
-    #             "rr_std": normalize(self.std_RR),
-    #             "rs_std": normalize(self.std_RS),
-    #             "rr_range": normalize(self.range_RR),
-    #             "rr_delta_abs": normalize(self.delta_abs_RR),
-    #             "rs_delta_abs": normalize(self.delta_abs_RS),
-    #             "rr_disp": 2 * normalize(self.disp_RR),
-    #             "rr_trend": normalize(self.trend_RR),
-    #             "gender": self.gender,
-    #             "age": normalize(self.age),
-    #             "label": self.label,
-    #         }
-    #     else:
-    #         return {
-    #             "rr_mean": self.mean_RR,
-    #             "rs_mean": self.mean_RS,
-    #             "rr_std": self.std_RR,
-    #             "rs_std": self.std_RS,
-    #             "rr_range": self.range_RR,
-    #             "rr_delta_abs": self.delta_abs_RR,
-    #             "rs_delta_abs": self.delta_abs_RS,
-    #             "rr_disp": self.disp_RR,
-    #             "rr_trend": self.trend_RR,
-    #             "gender": self.gender,
-    #             "age": self.age,
-    #             "label": self.label,
-    #         }
 
 
 # class for storing a collection of training intervals
@@ -158,18 +134,12 @@ class TrainingData:
             interval.trend_RR = np.mean(rr_delta_abs[i - trend_len:i]) if i > (trend_len - 1) else \
                 np.mean(rr_delta_abs[0:i+trend_len])
 
-        # self.trend_RR = [np.mean(rr_delta_abs[i - trend_len:i]) if i > (trend_len - 1) else 0.0 for i in
-        #             range(len(rr_delta_abs))]
-
     def trim(self):
         if not self.trimmed:
             labels = np.array([interval.label for interval in self.intervals])
             light = np.where(labels == 'light')[0]
             deep = np.where(labels == 'deep')[0]
             rem = np.where(labels == 'rem')[0]
-            # light = np.where(labels == 'nrem1')[0]
-            # deep = np.where(labels == 'nrem3')[0]
-            # rem = np.where(labels == 'rem')[0]
 
             # choose the intervals between our first and last asleep labels
             try:
@@ -205,7 +175,6 @@ class TrainingData:
                 elif self.labels[i] == 'rem':
                     plt.axvspan(i, i + 1, facecolor='r', alpha=0.6)
 
-        # plt.plot(xs, rr_means)
         if draw_fig:
             plt.plot(xs, self.rs_delta_abs, c='g', alpha=.7)
             draw_labels()
@@ -216,7 +185,6 @@ class TrainingData:
             plt.title("Respiratory Rate Index of Dispersion vs. 30s Interval")
             plt.savefig(f"figures{debug_str}/vars/day{TrainingData.count}rr_disp")
             plt.close()
-        # plt.plot(xs, rs_disp, c='c', alpha=.7)
 
     def export_stats(self) -> dict:
         # TODO: add new variables to export
@@ -229,7 +197,7 @@ class TrainingData:
                 "rr_range": normalize(self.rr_range),
                 "rr_delta_abs": normalize(self.rr_delta_abs),
                 "rs_delta_abs": normalize(self.rs_delta_abs),
-                "rr_disp": 2 * normalize(self.rr_disp),
+                "rr_disp": normalize(self.rr_disp),
                 "rr_trend": normalize(self.rr_trend),
                 "gender": self.gender,
                 "age": np.array([interval.age for interval in self.intervals]),
