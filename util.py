@@ -54,7 +54,6 @@ def split_dataframe(df: pd.DataFrame, batch_size: int = 2880) -> [pd.DataFrame]:
         batches.append(df[i * batch_size:(i+1) * batch_size])
     return batches
 
-
 # returns all columns but last, and then only last as np arrays
 def split(elt):
     return elt[:, :-1], elt[:, -1]
@@ -125,7 +124,7 @@ def draw_conf(pred: [torch.Tensor], true: [torch.Tensor], name: str = None):
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
 
-    # if we have a name for this matrix, then save it. Else just draw it.
+    # if we have a name for this matrix, then save it, else just draw it.
     if name:
         plt.title(name)
         plt.savefig(f"figures/confusion_matrices/{name}")
