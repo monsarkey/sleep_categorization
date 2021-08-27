@@ -1,15 +1,25 @@
-from util import split_dataframe, sample
 import pandas as pd
 import tensorflow as tf
 import numpy as np
+
 from keras_model import CNN1D, SimpleFF
 from util import parse_df, split
+
+"""
+Author: Sean Markey (00smarkey@gmail.com)
+
+Created: July 27th, 2021
+
+This file handles the cleaning of training data for the purpose of feeding into a keras model, along with the analysis
+of this model after training
+"""
 
 
 def keras_train(df: pd.DataFrame):
 
     predicting = True
 
+    # define hyperparameters of model
     epochs = 14
     batches_per_epoch = 4616
     input_len = 1
@@ -24,20 +34,24 @@ def keras_train(df: pd.DataFrame):
 
     data, train_in, train_out, test_in, test_out = parse_df(df, batch_size)
 
+    # define model
     # model = SimpleFF((nr_params,))
     model = CNN1D((input_len, nr_params))
+
+    # do reshaping on training and testing data
     train_in = train_in.reshape(train_in.shape[0] // input_len, input_len, nr_params)
-    # train_in = train_in.reshape(train_in.shape[0] // input_len, nr_params)
     train_out = np.asarray(train_out).reshape(train_out.shape[0] // input_len, 4)
 
     test_in = test_in.reshape(test_in.shape[0] // input_len, input_len, nr_params)
-    # test_in = test_in.reshape(test_in.shape[0] // input_len, nr_params)
     test_out = np.asarray(test_out).reshape(test_out.shape[0] // input_len, 4)
+
+    # fit our model with this data
     model.fit(train_in, train_out, batch_size=batch_size, epochs=epochs)
 
     score = model.evaluate(test_in, test_out)
     print('accuracy: ', score[1] * 100, '%')
 
+    # if we want, run this model on validation data to find accuracy reading
     if predicting:
         predict_in, predict_out = map(list, zip(*[split(elt) for elt in data]))
 
@@ -48,7 +62,6 @@ def keras_train(df: pd.DataFrame):
         predict_out = pd.get_dummies(predict_out)
 
         predict_in = predict_in.reshape(predict_in.shape[0] // input_len, input_len, nr_params)
-        # predict_in = predict_in.reshape(predict_in.shape[0] // input_len, nr_params)
         predict_out = np.asarray(predict_out).reshape(predict_out.shape[0] // input_len, 4)
 
         output = model.predict(predict_in, batch_size=batch_size)
@@ -56,12 +69,12 @@ def keras_train(df: pd.DataFrame):
         m = tf.keras.metrics.CategoricalAccuracy()
         m.update_state(y_true=predict_out, y_pred=output)
         print(f"Categorical Accuracy after prediction (from keras): {m.result().numpy()}")
-        # untrimmed weights
-        # output[:, 2] -= .41
-        # output[:, 1] += .22
+
+        # manually adjust weights of outputs (undesirable)
         output[:, 2] -= .5
         output[:, 1] += .3
         output[:, 3] -= .15
+
         predictions = np.array([elt.tolist().index(max(elt)) for elt in output])
         labels = np.array([['awake', 'light', 'deep', 'rem'][val] for val in predictions])
         df['out_label'] = labels
