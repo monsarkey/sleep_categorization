@@ -1,20 +1,27 @@
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
-from math import exp
+
+from torch.optim.lr_scheduler import  StepLR
+from matplotlib import pyplot as plt
+
 from torch_model import SimpleFF, LSTM
 from torch_dataset import SlidingWindowDataset
-from torch.optim.lr_scheduler import  StepLR
-
-from matplotlib import pyplot as plt
-from seaborn import heatmap
-from sklearn.metrics import confusion_matrix
 from util import parse_df, draw_conf
 
+"""
+Author: Sean Markey (00smarkey@gmail.com)
 
+Created: August 16th, 2021
+
+This file handles the conversion of our training data into the proper format for feeding into our pytorch machine
+learning model, running training and validation using this model, and visualizing its learning process.
+"""
+
+
+# this function plots the model's training and validation accuracy as a function of epoch number
 def draw_epoch_acc(acc_arr: list, val_acc_arr: list):
     xs = np.arange(len(acc_arr))
     plt.plot(xs, acc_arr)
@@ -24,6 +31,7 @@ def draw_epoch_acc(acc_arr: list, val_acc_arr: list):
     plt.ylabel("Accuracy (%)")
     plt.show()
 
+# this function plots the model's training and validation loss as a function of epoch number
 def draw_epoch_loss(loss_arr: list):
     xs = np.arange(len(loss_arr))
     plt.plot(xs, loss_arr)
@@ -32,7 +40,7 @@ def draw_epoch_loss(loss_arr: list):
     plt.ylabel("Loss")
     plt.show()
 
-
+# this is a modified loss function which penalizes the model more for guessing at light sleep
 def modified_crossentropy_loss(pred: [torch.Tensor], true: [torch.Tensor]) -> float:
     log_prob = -1.0 * F.log_softmax(pred, 1)
 
@@ -50,10 +58,9 @@ def modified_crossentropy_loss(pred: [torch.Tensor], true: [torch.Tensor]) -> fl
     loss = loss.mean()
     return loss
 
-
+# this function handles the training and visualization of the model
 def torch_train(df: pd.DataFrame):
 
-    predicting = True
     debug = False
 
     epochs = 1
@@ -69,39 +76,19 @@ def torch_train(df: pd.DataFrame):
     else:
         batch_size = 10
 
-    # batch_size = 1
-
     # specify columns to drop from dataframe for training
-    # to_del = ['Unnamed: 0', 'age', 'gender', 'rr_trend', 'rs_mean', 'rs_std', 'rr_range']
-    to_del = ['Unnamed: 0', 'age', 'rr_std', 'rs_std', 'rr_disp']
+    to_del = ['Unnamed: 0', 'age', 'rr_std', 'rs_std']
     df = df.drop(to_del, axis=1)
     nr_params -= len(to_del)
 
     data, train_in, train_out, test_in, test_out = parse_df(df, batch_size, debug=debug)
 
-    # model = SimpleFF((nr_params,))
-    # train_in = train_in.reshape(train_in.shape[0] // input_len, nr_params)
-    # train_out = np.asarray(train_out).reshape(train_out.shape[0] // input_len, 4)
-    #
-    # test_in = test_in.reshape(test_in.shape[0] // input_len, nr_params)
-    # test_out = np.asarray(test_out).reshape(test_out.shape[0] // input_len, 4)
-
-    # train_in = train_in[0:train_in.shape[0] - (train_in.shape[0] % seq_len)]
-    # train_out = train_out[0:train_out.shape[0] - (train_out.shape[0] % seq_len)]
-    #
-    # train_in = train_in.reshape(train_in.shape[0] // seq_len, seq_len, nr_params)
     train_out = np.asarray(train_out).reshape(train_out.shape[0], 4)
-    #
-    # test_in = test_in[0:test_in.shape[0]-(test_in.shape[0] % seq_len)]
-    # test_out = test_out[0:test_out.shape[0]-(test_out.shape[0] % seq_len)]
-    #
-    # test_in = test_in.reshape(test_in.shape[0] // seq_len, seq_len, nr_params)
     test_out = np.asarray(test_out).reshape(test_out.shape[0], 4)
 
+    # load our custom made datasets into a pytorch dataloader
     train_data = SlidingWindowDataset(train_in, train_out, window_size=window_size)
-    # train_data = torch.utils.data.TensorDataset(torch.tensor(train_in), torch.tensor(train_out))
     train_load = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    # test_data = torch.utils.data.TensorDataset(torch.tensor(test_in), torch.tensor(test_out))
     test_data = SlidingWindowDataset(test_in, test_out, window_size=window_size)
     test_load = torch.utils.data.DataLoader(test_data, batch_size=4)
 
@@ -109,13 +96,13 @@ def torch_train(df: pd.DataFrame):
 
     model = LSTM(input_size=nr_params, seq_length=window_size, num_layers=1, batch_size=batch_size, drop_prob=.3)
 
+    # uncomment to use weights on sleep stages to avoid guessing of only light and awake
     # criterion = nn.CrossEntropyLoss(weight=torch.Tensor([2, 1.5, 5, 2]))
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma, verbose=True)
 
-    total_step = len(train_load)
-
+    # keep track of loss and accuracy throughout training
     epoch_acc_list = []
     epoch_val_acc_list = []
     epoch_loss_list = []
@@ -125,9 +112,6 @@ def torch_train(df: pd.DataFrame):
 
     for epoch in range(epochs):
         print(f"----------- Epoch #{epoch + 1} -----------")
-
-        # if epoch % 8 == 0:
-        #     optimizer.param_groups[0]['lr'] *= .9
 
         batch_acc_list = []
         val_batch_acc_list = []
@@ -140,13 +124,13 @@ def torch_train(df: pd.DataFrame):
 
         for i, (inputs, labels) in enumerate(train_load):
 
+            # obtain guess for batch from the model
             outputs = model(inputs)
-            # outputs[:, 1] += .05
-            # outputs = torch.Tensor([[elt / np.sum(probs.tolist()) for elt in probs] for probs in outputs], requires_grad=True)
 
+            # take one index of one hot encoded label matrix to be the ground truth label
             labels = torch.max(labels, 1)[1]
-            # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
-            # loss = modified_crossentropy_loss(outputs, labels)
+
+            # apply loss function and then backpropogate
             loss = criterion(outputs, labels)
             loss_list.append(loss.item())
 
@@ -154,6 +138,7 @@ def torch_train(df: pd.DataFrame):
             loss.backward()
             optimizer.step()
 
+            # obtain predictions from output data, and get a percentage of correct values
             total = labels.size(0)
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
@@ -162,10 +147,12 @@ def torch_train(df: pd.DataFrame):
             train_labels.extend(labels)
             batch_acc_list.append(correct / total)
 
+            # uncomment to print accuracy for every batch
             # if (i + 1) % batch_size == 0:
             #     print(f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{total_step}], "
             #           f"Loss: {loss.item():.4f}, Accuracy: {((correct / total) * 100):.2f}%")
 
+        # get values for this epoch and draw a confusion matrix
         epoch_acc = np.average(batch_acc_list)
         epoch_acc_list.append(epoch_acc)
 
@@ -176,17 +163,17 @@ def torch_train(df: pd.DataFrame):
         print(f"Avg. Accuracy in Training Epoch #{epoch + 1}: {epoch_acc * 100:.2f}%")
         print(f"Avg. Loss in Training Epoch #{epoch + 1}: {epoch_loss:.4f}")
 
+        # run model on our validation data
         for i, (inputs, labels) in enumerate(test_load):
 
+            # obtain guess for batch from the model
             outputs = model(inputs)
-            labels = torch.max(labels, 1)[1]
-            # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
 
+            # take one index of one hot encoded label matrix to be the ground truth label
+            labels = torch.max(labels, 1)[1]
+
+            # obtain predictions from output data, and get a percentage of correct values
             total = labels.size(0)
-            # outputs[:, 1] -= .5
-            # outputs[:, 0] -= .3
-            # outputs[:, 3] += .3
-            # outputs[:, 2] += .4
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
 
@@ -198,14 +185,14 @@ def torch_train(df: pd.DataFrame):
         draw_conf(val_preds, val_labels, name=f"validation/conf_epoch{epoch + 1}_validation")
         print(f"Epoch #{epoch + 1} Validation Accuracy: {(np.average(val_batch_acc_list) * 100):.2f}%")
 
+        # update our learning rate according to scheduler
         scheduler.step()
 
-
-        # draw_acc(batch_acc_list)
-
+    # draw graphs showing accuracy and loss as a function of number of epoch
     draw_epoch_acc(epoch_acc_list, epoch_val_acc_list)
     draw_epoch_loss(epoch_loss_list)
 
+    # test our final model one last time on our validation data
     print("----------- Testing ----------- ")
     model.eval()
     with torch.no_grad():
@@ -214,9 +201,10 @@ def torch_train(df: pd.DataFrame):
         true = []
         pred = []
         for inputs, labels in test_load:
+
             outputs = model(inputs)
             labels = torch.max(labels, 1)[1]
-            # labels = torch.cat([torch.max(labels[num], 1)[1] for num in range(len(labels))])[0:len(outputs)]
+
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
 
@@ -229,7 +217,6 @@ def torch_train(df: pd.DataFrame):
     val_acc = correct / total
 
     print(f"Validation Accuracy: {val_acc * 100:.2f}%")
-    # draw_acc(epoch_acc_list, val_acc)
     draw_conf(pred, true, name="conf_final_validation")
 
     return df, model

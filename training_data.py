@@ -15,7 +15,6 @@ This file contains the class definitions for TrainingInterval and TrainingData, 
 extraction of respiratory rate data, which is then exported to dataframe for future use.
 """
 
-# TODO: Write this class :)
 class TrainingInterval:
 
     def __init__(self, resp_rates: np.ndarray, resp_strns: np.ndarray,

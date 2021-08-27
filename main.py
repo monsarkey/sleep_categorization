@@ -10,7 +10,7 @@ Author: Sean Markey (00smarkey@gmail.com)
 
 Created: July 8th 2021
 
-The purpose of this project effectively to categorize sleep stages into awake/light/deep/rem using solely
+The purpose of this project is to categorize sleep stages into awake/light/deep/rem using solely
 respiratory data. In order to do this, we use the Expanded Sleep-EDF Dataset, which includes recordings of
 inner-nasal voltage from which respiratory rate and strength can be estimated. We perform manual feature extraction
 on this data and concatenate features from every night's sleep into one dataset. We then use this dataset to feed
@@ -66,5 +66,6 @@ if __name__ == '__main__':
     elif train_method == "keras":
         out_df, keras_model = keras_train(df)
         out_df.to_csv(f"data/edf_data{trimmed_str}{cleaned_str}{normalized_str}_output.csv")
+    else:
+        print(f"Unrecognized training method: {train_method}. Choose between \"pytorch\" and \"keras\"")
 
-    print('done!')
